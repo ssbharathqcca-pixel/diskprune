@@ -28,6 +28,9 @@ jobs:
         cd app
         mkdir -p DiskPrune.app/Contents/MacOS DiskPrune.app/Contents/Resources
         cp .build/release/DiskPrune DiskPrune.app/Contents/MacOS/DiskPrune
+        if [ -d "Sources/DiskPrune/Resources" ]; then
+            cp -r Sources/DiskPrune/Resources/* DiskPrune.app/Contents/Resources/ || true
+        fi
         cat << 'EOF' > DiskPrune.app/Contents/Info.plist
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -39,6 +42,8 @@ jobs:
             <string>com.diskprune.app</string>
             <key>CFBundlePackageType</key>
             <string>APPL</string>
+            <key>CFBundleIconFile</key>
+            <string>AppIcon</string>
         </dict>
         </plist>
         EOF

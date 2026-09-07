@@ -4,8 +4,20 @@ import Security
 class LicenseManager {
     static let shared = LicenseManager()
     
+    var isActivated: Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "DiskPruneLicense",
+            kSecReturnData as String: kCFBooleanTrue!
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        return status == errSecSuccess
+    }
+    
     func activate(licenseKey: String) async throws -> Bool {
-        let url = URL(string: "https://api.lemonsqueezy.com/v1/licenses/activate")!
+        // Stripe integration requires a custom backend to issue and verify license keys.
+        let url = URL(string: "https://api.diskprune.com/v1/licenses/activate")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

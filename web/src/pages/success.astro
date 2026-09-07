@@ -1,0 +1,82 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Thank You - DiskPrune">
+  <main class="max-w-3xl mx-auto px-6 py-20 text-center">
+    <div class="bg-slate-800 p-10 rounded-xl border border-slate-700">
+      <h1 class="text-4xl font-bold mb-4 text-green-400">Payment Successful!</h1>
+      <p class="text-xl text-slate-300 mb-8">Thank you for purchasing a DiskPrune lifetime license.</p>
+      
+      <div id="loading" class="text-slate-400 animate-pulse">
+        Generating your license key...
+      </div>
+      
+      <div id="license-container" class="hidden">
+        <p class="mb-2 text-sm text-slate-400 uppercase tracking-widest">Your License Key</p>
+        <div class="flex items-center justify-center gap-3">
+          <code id="license-key" class="bg-slate-900 border border-slate-600 px-6 py-3 rounded-lg text-2xl font-mono text-blue-400 font-bold select-all">
+            ...
+          </code>
+          <button id="copy-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg transition-colors">
+            Copy
+          </button>
+        </div>
+        <p class="mt-6 text-slate-400">Download the app, click "Purge", and paste this key when prompted.</p>
+      </div>
+      
+      <div id="error-container" class="hidden text-red-400 mt-6 bg-red-900/20 p-4 rounded-lg">
+        Could not retrieve your license key. Please check your email inbox.
+      </div>
+      
+      <div class="mt-10">
+        <a href="https://github.com/saibharathsiliveri/diskprune/releases/latest/download/DiskPrune.dmg" class="inline-block bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
+          Download DiskPrune
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      
+      const loading = document.getElementById('loading');
+      const licenseContainer = document.getElementById('license-container');
+      const licenseKeyEl = document.getElementById('license-key');
+      const errorContainer = document.getElementById('error-container');
+      const copyBtn = document.getElementById('copy-btn');
+      
+      if (!sessionId) {
+        if (loading) loading.classList.add('hidden');
+        if (errorContainer) errorContainer.classList.remove('hidden');
+        return;
+      }
+      
+      try {
+        // Point this to your actual worker route
+        const res = await fetch(`https://api.diskprune.com/key-lookup?session_id=${sessionId}`);
+        if (!res.ok) throw new Error('Not found');
+        
+        const data = await res.json();
+        if (data.license_key) {
+          if (licenseKeyEl) licenseKeyEl.textContent = data.license_key;
+          if (loading) loading.classList.add('hidden');
+          if (licenseContainer) licenseContainer.classList.remove('hidden');
+          
+          if (copyBtn && licenseKeyEl) {
+            copyBtn.addEventListener('click', () => {
+              navigator.clipboard.writeText(data.license_key);
+              copyBtn.textContent = 'Copied!';
+              setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+            });
+          }
+        }
+      } catch (err) {
+        if (loading) loading.classList.add('hidden');
+        if (errorContainer) errorContainer.classList.remove('hidden');
+      }
+    });
+  </script>
+</Layout>
