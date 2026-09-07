@@ -1,0 +1,43 @@
+---
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="DiskPrune - The native macOS storage manager to reclaim disk space instantly." />
+    <meta name="viewport" content="width=device-width" />
+    
+    <!-- OpenGraph Tags -->
+    <meta property="og:title" content="DiskPrune" />
+    <meta property="og:description" content="DiskPrune is the ultimate native macOS storage manager to reclaim disk space instantly." />
+    <meta property="og:type" content="website" />
+    
+    <title>{title}</title>
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "DiskPrune",
+        "operatingSystem": "macOS 14.0+",
+        "applicationCategory": "UtilitiesApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "19.00",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+    <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+  </head>
+  <body class="bg-slate-900 text-slate-100 font-sans">
+    <slot />
+  </body>
+</html>

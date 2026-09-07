@@ -1,0 +1,70 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - "v*"
+  pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build swift app
+      run: |
+        cd app
+        swift build -c release
+        
+    - name: Package App Bundle
+      run: |
+        cd app
+        mkdir -p DiskPrune.app/Contents/MacOS DiskPrune.app/Contents/Resources
+        cp .build/release/DiskPrune DiskPrune.app/Contents/MacOS/DiskPrune
+        cat << 'EOF' > DiskPrune.app/Contents/Info.plist
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>DiskPrune</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.diskprune.app</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+        </dict>
+        </plist>
+        EOF
+        
+    - name: Ad-Hoc Code Sign
+      run: |
+        cd app
+        codesign --force --deep --sign - DiskPrune.app
+        
+    - name: Create DMG
+      run: |
+        cd app
+        hdiutil create -volname "DiskPrune" -srcfolder DiskPrune.app -ov -format UDZO DiskPrune.dmg
+        
+    - name: Upload DMG Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: DiskPrune.dmg
+        path: app/DiskPrune.dmg
+        
+    - name: Publish GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: app/DiskPrune.dmg
+        name: "DiskPrune ${{ github.ref_name }}"
+        generate_release_notes: true
+        draft: false
+        prerelease: false

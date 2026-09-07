@@ -1,0 +1,37 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export function getStaticPaths() {
+  return [
+    { params: { slug: 'clear-system-data-mac' }, props: { title: 'Clear System Data on Mac', desc: 'Free up system data on macOS instantly.' } },
+    { params: { slug: 'how-to-delete-xcode-deriveddata' }, props: { title: 'How to Delete Xcode DerivedData', desc: 'Safely clear Xcode DerivedData to save disk space.' } },
+    { params: { slug: 'shrink-docker-disk-mac' }, props: { title: 'Shrink Docker Disk Mac', desc: 'Reclaim storage by shrinking the Docker disk image.' } },
+    { params: { slug: 'delete-purgeable-space-mac' }, props: { title: 'Delete Purgeable Space Mac', desc: 'Force macOS to clear purgeable space using APFS snapshots.' } },
+  ];
+}
+
+const { slug } = Astro.params;
+const { title, desc } = Astro.props;
+---
+
+<Layout title={`${title} - DiskPrune Guide`}>
+  <main class="max-w-3xl mx-auto px-6 py-20">
+    <a href="/" class="text-blue-400 hover:underline mb-8 inline-block">&larr; Back to DiskPrune</a>
+    <article>
+      <header class="mb-10">
+        <h1 class="text-4xl font-bold mb-4">{title}</h1>
+        <p class="text-xl text-slate-400">{desc}</p>
+      </header>
+      
+      <div class="prose prose-invert prose-lg max-w-none">
+        <p>If you're looking for an automated, native way to resolve this and reclaim gigabytes of space on your Mac, <a href="/" class="text-blue-400 hover:underline">DiskPrune</a> handles this safely and instantly without a subscription.</p>
+        
+        <h2 class="text-2xl mt-8 mb-4">Manual Steps</h2>
+        <p class="mb-4">While DiskPrune can automate this process using its tier-based safety engine and APFS snapshot flushing, here is how you might approach it manually...</p>
+        
+        <!-- Content stub for programmatic SEO purposes -->
+        <p>Depending on your macOS version (Sonoma, Sequoia, etc.), system caches, application support orphaned files, and unreleased APFS snapshots can accumulate over time. Handling this directly via terminal commands or finder requires caution.</p>
+      </div>
+    </article>
+  </main>
+</Layout>
