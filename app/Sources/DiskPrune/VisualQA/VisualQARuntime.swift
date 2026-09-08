@@ -170,8 +170,8 @@ private enum VisualQACatalog {
         VisualQARuntime.trace("checkpoint before data views shots=\(records.count)")
 
         // Phase B: production child views with fixture data. Not a second RootView.
-        // Live ingestScan previously hung because destination was still .overview
-        // (StorageAutopsyView + hatch + sidebar Storage section in one update).
+        // Capture List-backed category/cleanup/snapshots for BOTH themes before
+        // Autopsy — hosted StorageAutopsyView has hung the runner after the light pass.
         let empty = AppSession(knowledge: knowledge)
         ingestEmpty(empty)
         let partialSession = AppSession(knowledge: knowledge)
@@ -192,47 +192,19 @@ private enum VisualQACatalog {
                 empty.destination = .cleanup
                 attemptHosted(ResultsView(session: empty, filter: .cleanup), screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true, preferLayer: true)
             }
+        }
+
+        writeManifest()
+        try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
+        VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
+
+        // Phase C last: Overview / Autopsy. Previously hung the runner.
+        for dark in [false, true] {
+            applyAppearance(dark)
             fixture.destination = .overview
             attemptHosted(StorageAutopsyView(session: fixture), screen: "03-overview-autopsy", dark: dark, size: wide, fixture: true, preferLayer: true)
             partialSession.destination = .overview
             attemptHosted(StorageAutopsyView(session: partialSession), screen: "09-overview-partial", dark: dark, size: wide, fixture: true, preferLayer: true)
-        }
-
-        writeManifest()
-        try? Data("checkpoint-before-live-ingest\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
-        VisualQARuntime.trace("checkpoint before live ingest shots=\(records.count)")
-
-        // Phase C: live RootView after ingest. Switch off Overview first so Autopsy
-        // is not the first paint. cacheDisplay, no displayIfNeeded.
-        applyAppearance(false)
-        live.destination = .cleanup
-        live.phase = .ready
-        live.coverage = nil
-        live.items = []
-        waitForLayout(window, size: wide, flush: false)
-        VisualQARuntime.trace("live ingest begin dest=\(String(describing: live.destination))")
-        ingest(live, partial: false)
-        live.destination = .cleanup
-        live.inspectorOpen = false
-        VisualQARuntime.trace("live ingest returned items=\(live.items.count)")
-        waitForLayout(window, size: wide, flush: false)
-        proveSidebar(window)
-        attemptLive(window, screen: "05b-cleanup-in-root", dark: false, size: wide, fixture: true)
-
-        live.destination = .category(.developer)
-        waitForLayout(window, size: wide, flush: false)
-        attemptLive(window, screen: "04b-category-in-root", dark: false, size: wide, fixture: true)
-
-        live.destination = .overview
-        waitForLayout(window, size: wide, flush: false)
-        attemptLive(window, screen: "03b-autopsy-in-root", dark: false, size: wide, fixture: true)
-
-        if let item = live.items.first(where: { $0.safety == .safe }) {
-            live.destination = .cleanup
-            live.openInspector(item)
-            waitForLayout(window, size: wide, flush: false)
-            attemptLive(window, screen: "06b-inspector-in-root", dark: false, size: wide, fixture: true)
-            live.inspectorOpen = false
         }
     }
 
