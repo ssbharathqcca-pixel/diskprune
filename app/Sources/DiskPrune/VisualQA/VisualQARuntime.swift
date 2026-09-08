@@ -98,6 +98,10 @@ private enum VisualQACatalog {
         let knowledge = session.knowledge
         let wide = CGSize(width: 1100, height: 720)
         let narrow = CGSize(width: 880, height: 560)
+        let fixture = AppSession(knowledge: knowledge)
+        ingest(fixture, partial: false)
+        let empty = AppSession(knowledge: knowledge)
+        ingestEmpty(empty)
 
         for dark in [false, true] {
             applyAppearance(dark)
@@ -116,49 +120,42 @@ private enum VisualQACatalog {
                 session.activeProbe = "Package managers"
                 session.probeBytes = ["Xcode": 38_400_000_000, "Docker": 8_100_000_000]
                 try captureWindow("02-scan-progress", dark: dark, size: size, fixture: true)
+                session.phase = .idle
+                session.activeProbe = nil
 
-                ingest(session, partial: false)
-                session.destination = .overview
-                try captureRendered(StorageAutopsyView(session: session), screen: "03-overview-autopsy", dark: dark, size: size, fixture: true)
-
-                session.destination = .category(.developer)
-                try captureRendered(ResultsView(session: session, filter: .bucket(.developer)), screen: "04-category-detail", dark: dark, size: size, fixture: true)
-
-                session.destination = .cleanup
-                session.inspectorOpen = false
-                try captureRendered(ResultsView(session: session, filter: .cleanup), screen: "05-cleanup-candidates", dark: dark, size: size, fixture: true)
-
-                if let item = session.items.first(where: { $0.safety == .safe }) {
+                if let item = fixture.items.first(where: { $0.safety == .safe }) {
                     try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "06-item-inspector", dark: dark, size: size, fixture: true)
                 }
-
-                session.destination = .snapshots
-                try captureRendered(SnapshotView(summary: session.snapshots), screen: "07-snapshots", dark: dark, size: size, fixture: true)
-
-                ingestEmpty(session)
-                session.destination = .cleanup
-                try captureRendered(ResultsView(session: session, filter: .cleanup), screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true)
-
-                ingest(session, partial: true)
-                session.destination = .overview
-                try captureRendered(StorageAutopsyView(session: session), screen: "09-overview-partial", dark: dark, size: size, fixture: true)
-
-                ingest(session, partial: false)
-                if let item = session.items.first(where: { $0.safety == .protected }) {
+                try captureRendered(SnapshotView(summary: SnapshotSummary(count: 0, dates: [], readFailed: false)), screen: "07-snapshots", dark: dark, size: size, fixture: true)
+                if let item = fixture.items.first(where: { $0.safety == .protected }) {
                     try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "10-inspector-protected", dark: dark, size: size, fixture: true)
                 }
-                if let item = session.items.first(where: { $0.safety == .advanced }) {
+                if let item = fixture.items.first(where: { $0.safety == .advanced }) {
                     try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "11-inspector-advanced", dark: dark, size: size, fixture: true)
                 }
             }
 
-            ingest(session, partial: false)
-            session.destination = .cleanup
-            try captureRendered(DryRunSheet(session: session), screen: "12-dry-run", dark: dark, size: CGSize(width: 520, height: 400), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureRendered(DryRunSheet(session: fixture), screen: "12-dry-run", dark: dark, size: CGSize(width: 520, height: 400), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
             try captureRendered(ReceiptView(receipt: successReceipt(knowledge)), screen: "13-receipt", dark: dark, size: CGSize(width: 560, height: 480), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
             try captureRendered(ReceiptView(receipt: failureReceipt(knowledge)), screen: "14-cleanup-failure", dark: dark, size: CGSize(width: 560, height: 520), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
             try captureRendered(SettingsRootView(knowledge: knowledge), screen: "15-settings", dark: dark, size: CGSize(width: 520, height: 360), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
         }
+
+        limitations.append("03-overview-autopsy and 09-overview-partial NOT captured: StorageAutopsyView hangs cacheDisplay and ImageRenderer on the GitHub-hosted runner.")
+        writeManifest()
+        try? Data("partial-before-lists\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
+        VisualQARuntime.trace("checkpoint before List views")
+
+        for dark in [false, true] {
+            applyAppearance(dark)
+            try captureRendered(SnapshotView(summary: fixture.snapshots), screen: "07b-snapshots-list", dark: dark, size: wide, fixture: true)
+            for size in [wide, narrow] {
+                try captureRendered(ResultsView(session: fixture, filter: .bucket(.developer)), screen: "04-category-detail", dark: dark, size: size, fixture: true)
+                try captureRendered(ResultsView(session: fixture, filter: .cleanup), screen: "05-cleanup-candidates", dark: dark, size: size, fixture: true)
+                try captureRendered(ResultsView(session: empty, filter: .cleanup), screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true)
+            }
+        }
+
     }
 
     private static func ingest(_ session: AppSession, partial: Bool) {
