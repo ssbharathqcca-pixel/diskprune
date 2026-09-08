@@ -9,7 +9,7 @@
 - Receipt shows three accounting lines: Estimated recoverable, Moved to Trash, Storage immediately available. Trashed bytes are never called freed.
 - Snapshots are inspect-only. No delete affordance and no snapshot-deletion command in the UI.
 - Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`. Gate 4 remains NOT PASS.
-- Visual QA CI: `macos-latest` hosts production `RootView` / sheets in a real `NSWindow`, launches the packaged `.app` for first-launch, and uploads PNGs. Fixtures use existing models and `ingestScan`. No Trash move. Gate 4 remains NOT PASS.
+- Visual QA CI: launches the packaged `DiskPrune.app` on `macos-latest`. The env-gated harness snapshots the live `RootView` window via `CALayer.render` (not ImageRenderer, not a second hosted RootView). Child views (inspector, dry-run, receipt, settings) are production views in an auxiliary on-screen window. Fixtures use existing models and `ingestScan`. No Trash move. Gate 4 remains NOT PASS.
 
 
 ### Fixes

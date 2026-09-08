@@ -1,4 +1,4 @@
-Last verified commit: `917ffb7d` (CI green). Visual QA package is a follow-up commit on this tree.
+Last verified commit: `b5594065` (CI + macOS build green; Visual QA screenshot job failed — hosted RootView hung on category-detail List). Visual QA follow-up is on this tree.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -46,7 +46,7 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Receipt three-line accounting
 - [x] Protected/advanced have no checkbox
 - [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
-- [x] CI screenshot workflow hosting production views (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
+- [x] CI screenshot workflow of the packaged app (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
 - [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
 - [ ] Human review of CI screenshots — **NOT TESTED**
 - [ ] Canvas comparison — **NOT TESTED**

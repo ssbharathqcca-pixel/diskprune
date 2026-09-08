@@ -91,14 +91,20 @@ struct CapacityBar: View {
 struct HatchSegment: View {
     var body: some View {
         Canvas { context, size in
+            guard size.width.isFinite, size.height.isFinite,
+                  size.width > 0, size.height > 0 else { return }
+            let width = min(size.width, 4096)
+            let height = min(size.height, 4096)
             let hatch = Color(nsColor: .tertiaryLabelColor).opacity(0.2)
-            var x: CGFloat = -size.height
-            while x < size.width + size.height {
+            var x: CGFloat = -height
+            var steps = 0
+            while x < width + height && steps < 3_000 {
                 var path = Path()
-                path.move(to: CGPoint(x: x, y: size.height))
-                path.addLine(to: CGPoint(x: x + size.height, y: 0))
+                path.move(to: CGPoint(x: x, y: height))
+                path.addLine(to: CGPoint(x: x + height, y: 0))
                 context.stroke(path, with: .color(hatch), lineWidth: 1)
                 x += 4
+                steps += 1
             }
         }
         .background(Color(nsColor: .controlBackgroundColor))

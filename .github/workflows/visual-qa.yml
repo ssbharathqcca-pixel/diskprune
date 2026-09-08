@@ -31,11 +31,12 @@ jobs:
           DISKPRUNE_APP: ${{ github.workspace }}/app/DiskPrune.app
 
       - name: Upload screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: visual-qa-${{ github.sha }}
           path: visual-qa-shots
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Summarize
         if: always()

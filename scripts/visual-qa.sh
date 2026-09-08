@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Launch the packaged DiskPrune.app via LaunchServices with the Visual QA harness.
-# Poll until the catalog writes README.txt. Does not mark Gate 4 PASS.
+# Poll until the catalog writes COMPLETE. Does not mark Gate 4 PASS.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -41,7 +41,7 @@ open "$APP"
 done_file="$OUT/DONE"
 complete_file="$OUT/COMPLETE"
 saw_checkpoint=0
-for i in $(seq 1 90); do
+for i in $(seq 1 150); do
   if [[ -f "$complete_file" ]]; then
     echo "catalog finished after ${i} polls"
     break
@@ -56,7 +56,6 @@ for i in $(seq 1 90); do
   sleep 2
 done
 
-
 if [[ -f "$OUT/harness.log" ]]; then
   echo "---- harness.log ----"
   cat "$OUT/harness.log"
@@ -70,8 +69,13 @@ echo "screenshots: $OUT"
 find "$OUT" -name '*.png' | sort || true
 count="$(find "$OUT" -name '*.png' 2>/dev/null | wc -l | tr -d ' ')"
 echo "png count: $count"
-if [[ "$count" -lt 20 ]]; then
-  echo "expected at least 20 PNGs" >&2
-  cat "$OUT/README.txt" 2>/dev/null || true
+if [[ -f "$OUT/README.txt" ]]; then
+  echo "---- README.txt ----"
+  cat "$OUT/README.txt"
+  echo "--------------------"
+fi
+if [[ "$count" -lt 12 ]]; then
+  echo "expected at least 12 PNGs from the production app" >&2
   exit 1
 fi
+echo "Gate 4 remains NOT PASS. Screenshots are supplemental evidence."

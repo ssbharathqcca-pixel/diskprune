@@ -4,6 +4,9 @@ import SwiftUI
 @main
 struct DiskPruneApp: App {
     init() {
+        if VisualQARuntime.isEnabled {
+            PreferencesStore.scanOnLaunch = false
+        }
         VisualQARuntime.trace("DiskPruneApp.init enabled=\(VisualQARuntime.isEnabled)")
     }
 
