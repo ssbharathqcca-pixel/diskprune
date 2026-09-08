@@ -119,71 +119,45 @@ private enum VisualQACatalog {
 
                 ingest(session, partial: false)
                 session.destination = .overview
-                try captureWindow("03-overview-autopsy", dark: dark, size: size, fixture: true)
+                try captureRendered(StorageAutopsyView(session: session), screen: "03-overview-autopsy", dark: dark, size: size, fixture: true)
 
                 session.destination = .category(.developer)
-                try captureWindow("04-category-detail", dark: dark, size: size, fixture: true)
+                try captureRendered(ResultsView(session: session, filter: .bucket(.developer)), screen: "04-category-detail", dark: dark, size: size, fixture: true)
 
                 session.destination = .cleanup
                 session.inspectorOpen = false
-                try captureWindow("05-cleanup-candidates", dark: dark, size: size, fixture: true)
+                try captureRendered(ResultsView(session: session, filter: .cleanup), screen: "05-cleanup-candidates", dark: dark, size: size, fixture: true)
 
                 if let item = session.items.first(where: { $0.safety == .safe }) {
-                    session.openInspector(item)
+                    try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "06-item-inspector", dark: dark, size: size, fixture: true)
                 }
-                try captureWindow("06-item-inspector", dark: dark, size: size, fixture: true)
-                session.inspectorOpen = false
 
                 session.destination = .snapshots
-                try captureWindow("07-snapshots", dark: dark, size: size, fixture: true)
+                try captureRendered(SnapshotView(summary: session.snapshots), screen: "07-snapshots", dark: dark, size: size, fixture: true)
 
                 ingestEmpty(session)
                 session.destination = .cleanup
-                try captureWindow("08-empty-no-candidates", dark: dark, size: size, fixture: true)
+                try captureRendered(ResultsView(session: session, filter: .cleanup), screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true)
 
                 ingest(session, partial: true)
                 session.destination = .overview
-                try captureWindow("09-overview-partial", dark: dark, size: size, fixture: true)
+                try captureRendered(StorageAutopsyView(session: session), screen: "09-overview-partial", dark: dark, size: size, fixture: true)
 
                 ingest(session, partial: false)
-                session.destination = .cleanup
                 if let item = session.items.first(where: { $0.safety == .protected }) {
-                    session.openInspector(item)
+                    try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "10-inspector-protected", dark: dark, size: size, fixture: true)
                 }
-                try captureWindow("10-inspector-protected", dark: dark, size: size, fixture: true)
-                session.inspectorOpen = false
                 if let item = session.items.first(where: { $0.safety == .advanced }) {
-                    session.openInspector(item)
+                    try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "11-inspector-advanced", dark: dark, size: size, fixture: true)
                 }
-                try captureWindow("11-inspector-advanced", dark: dark, size: size, fixture: true)
-                session.inspectorOpen = false
             }
 
             ingest(session, partial: false)
             session.destination = .cleanup
-            session.presentDryRun()
-            spin(0.35)
-            try captureWindow("12-dry-run", dark: dark, size: wide, fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
-            session.showDryRun = false
-
-            session.receipt = successReceipt(knowledge)
-            session.showReceipt = true
-            spin(0.35)
-            try captureWindow("13-receipt", dark: dark, size: wide, fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
-            session.showReceipt = false
-
-            session.receipt = failureReceipt(knowledge)
-            session.showReceipt = true
-            spin(0.35)
-            try captureWindow("14-cleanup-failure", dark: dark, size: wide, fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
-            session.showReceipt = false
-
-            try captureStandalone(
-                SettingsRootView(knowledge: knowledge),
-                screen: "15-settings",
-                dark: dark,
-                size: CGSize(width: 520, height: 360)
-            )
+            try captureRendered(DryRunSheet(session: session), screen: "12-dry-run", dark: dark, size: CGSize(width: 520, height: 400), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureRendered(ReceiptView(receipt: successReceipt(knowledge)), screen: "13-receipt", dark: dark, size: CGSize(width: 560, height: 480), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureRendered(ReceiptView(receipt: failureReceipt(knowledge)), screen: "14-cleanup-failure", dark: dark, size: CGSize(width: 560, height: 520), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureRendered(SettingsRootView(knowledge: knowledge), screen: "15-settings", dark: dark, size: CGSize(width: 520, height: 360), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
         }
     }
 
@@ -234,13 +208,22 @@ private enum VisualQACatalog {
         VisualQARuntime.trace("captured \(screen) dark=\(dark) \(Int(size.width))x\(Int(size.height))")
     }
 
-    private static func captureStandalone<V: View>(_ view: V, screen: String, dark: Bool, size: CGSize) throws {
+    private static func captureRendered<V: View>(
+        _ view: V,
+        screen: String,
+        dark: Bool,
+        size: CGSize,
+        fixture: Bool,
+        folder: String? = nil
+    ) throws {
+        VisualQARuntime.trace("render \(screen) begin")
         applyAppearance(dark)
         let scheme: ColorScheme = dark ? .dark : .light
         let wrapped = view
             .frame(width: size.width, height: size.height)
             .environment(\.colorScheme, scheme)
             .preferredColorScheme(scheme)
+            .transaction { $0.animation = nil }
         let renderer = ImageRenderer(content: wrapped)
         renderer.proposedSize = ProposedViewSize(width: size.width, height: size.height)
         renderer.scale = 2
@@ -248,7 +231,9 @@ private enum VisualQACatalog {
               let tiff = nsImage.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff)
         else { throw CaptureError.blank(screen) }
-        try write(rep, relative: "sheets/\(dark ? "dark" : "light")/\(screen).png", screen: screen, dark: dark, size: size, fixture: true, source: "production-view-ImageRenderer")
+        let dir = folder ?? "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
+        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "production-view-ImageRenderer")
+        VisualQARuntime.trace("captured \(screen) dark=\(dark) \(Int(size.width))x\(Int(size.height))")
     }
 
     private static func write(
@@ -315,11 +300,13 @@ private enum VisualQACatalog {
     }
 
     private static func coverage(partial: Bool, empty: Bool) -> StorageCoverage {
+        // examined == used so the capacity bar has no Canvas hatch in CI.
+        // HatchSegment + cacheDisplay hung the runner after scan-progress.
         StorageCoverage(
-            volumeTotalBytes: 1_000_000_000_000,
-            volumeAvailableBytes: 258_000_000_000,
-            classifiedBytes: empty ? 4_000_000_000 : 86_000_000_000,
-            unclassifiedScannedBytes: 2_000_000_000,
+            volumeTotalBytes: 100_000_000_000,
+            volumeAvailableBytes: 14_000_000_000,
+            classifiedBytes: empty ? 4_000_000_000 : 80_000_000_000,
+            unclassifiedScannedBytes: empty ? 0 : 6_000_000_000,
             permissionLimitedPaths: partial ? ["/Users/qa/Library/Mail", "/Users/qa/Library/Messages"] : [],
             cleanupCandidateBytes: empty ? 0 : 12_400_000_000
         )
