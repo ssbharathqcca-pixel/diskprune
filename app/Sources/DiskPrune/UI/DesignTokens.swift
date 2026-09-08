@@ -198,6 +198,11 @@ extension SafetyLevel {
     }
 }
 
+struct CategoryShare: Equatable {
+    let bucket: CategoryBucket
+    let bytes: Int64
+}
+
 struct AutopsyModel: Equatable {
     let volumeName: String
     let volumeTotalBytes: Int64
@@ -213,7 +218,7 @@ struct AutopsyModel: Equatable {
     let emptyCandidates: Bool
     let statement: String
     let supporting: String
-    let categoryShares: [(CategoryBucket, Int64)]
+    let categoryShares: [CategoryShare]
 
     /// Headlines come only from `StorageCoverage`. Category shares are a split of
     /// `classifiedBytes` using item weights — they are never summed as a headline.
@@ -237,30 +242,30 @@ struct AutopsyModel: Equatable {
             weights[bucket, default: 0] += item.onDiskBytes
         }
         let weightTotal = weights.values.reduce(Int64(0), +)
-        var shares: [(CategoryBucket, Int64)] = []
+        var shares: [CategoryShare] = []
         if weightTotal > 0, classifiedBytes > 0 {
             for bucket in CategoryBucket.allCases {
                 let w = weights[bucket] ?? 0
                 guard w > 0 else { continue }
-                shares.append((bucket, classifiedBytes * w / weightTotal))
+                shares.append(CategoryShare(bucket: bucket, bytes: classifiedBytes * w / weightTotal))
             }
         }
         if unclassifiedScannedBytes > 0 {
-            if let idx = shares.firstIndex(where: { $0.0 == .otherClassified }) {
-                shares[idx] = (.otherClassified, shares[idx].1 + unclassifiedScannedBytes)
+            if let idx = shares.firstIndex(where: { $0.bucket == .otherClassified }) {
+                shares[idx] = CategoryShare(bucket: .otherClassified, bytes: shares[idx].bytes + unclassifiedScannedBytes)
             } else {
-                shares.append((.otherClassified, unclassifiedScannedBytes))
+                shares.append(CategoryShare(bucket: .otherClassified, bytes: unclassifiedScannedBytes))
             }
         }
         categoryShares = shares
 
-        let top = shares.max(by: { $0.1 < $1.1 })
+        let top = shares.max(by: { $0.bytes < $1.bytes })
         if classifiedBytes == 0 && examinedBytes == 0 {
             statement = "Scan to see what's using your storage"
             supporting = "DiskPrune examines known caches, build products, and logs. It does not claim to explain the whole disk."
         } else if let top, classifiedBytes > 0 {
-            statement = "Most of the storage DiskPrune could explain is \(top.0.title.lowercased())."
-            supporting = "\(top.0.title) accounts for \(UIFormat.bytes(top.1)) of the \(UIFormat.bytes(examinedBytes)) DiskPrune examined."
+            statement = "Most of the storage DiskPrune could explain is \(top.bucket.title.lowercased())."
+            supporting = "\(top.bucket.title) accounts for \(UIFormat.bytes(top.bytes)) of the \(UIFormat.bytes(examinedBytes)) DiskPrune examined."
         } else {
             statement = "Some storage could not be classified."
             supporting = "DiskPrune examined \(UIFormat.bytes(examinedBytes)) of the \(UIFormat.bytes(volumeUsedBytes)) used."

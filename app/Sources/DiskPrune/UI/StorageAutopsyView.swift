@@ -103,12 +103,12 @@ struct StorageAutopsyView: View {
 
     private func legend(_ model: AutopsyModel) -> some View {
         HStack(spacing: Space.lg) {
-            ForEach(model.categoryShares, id: \.0) { bucket, _ in
+            ForEach(model.categoryShares, id: \.bucket) { share in
                 HStack(spacing: Space.xs) {
                     Circle()
-                        .fill(bucket.fill(colorScheme))
+                        .fill(share.bucket.fill(colorScheme))
                         .frame(width: 8, height: 8)
-                    Text(bucket.title)
+                    Text(share.bucket.title)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -186,7 +186,7 @@ struct StorageAutopsyView: View {
     }
 
     private func barSegments(_ model: AutopsyModel) -> [CapacitySegment] {
-        var segments = model.categoryShares.map { CapacitySegment(kind: .category($0.0), bytes: $0.1) }
+        var segments = model.categoryShares.map { CapacitySegment(kind: .category($0.bucket), bytes: $0.bytes) }
         if model.notExaminedBytes > 0 {
             segments.append(CapacitySegment(kind: .notExamined, bytes: model.notExaminedBytes))
         }

@@ -56,17 +56,17 @@ struct RootView: View {
 
             if session.phase == .ready || session.phase == .executing, let coverage = session.coverage {
                 Section("Storage") {
-                    ForEach(sidebarCategories(coverage), id: \.0) { bucket, bytes in
+                    ForEach(sidebarCategories(coverage), id: \.bucket) { share in
                         HStack {
-                            Label(bucket.title, systemImage: bucket.symbol)
+                            Label(share.bucket.title, systemImage: share.bucket.symbol)
                                 .foregroundStyle(.primary)
                             Spacer()
-                            Text(UIFormat.bytes(bytes))
+                            Text(UIFormat.bytes(share.bytes))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }
-                        .tag(SidebarDestination.category(bucket))
-                        .accessibilityLabel("\(bucket.title), \(UIFormat.bytes(bytes))")
+                        .tag(SidebarDestination.category(share.bucket))
+                        .accessibilityLabel("\(share.bucket.title), \(UIFormat.bytes(share.bytes))")
                     }
                 }
             }
@@ -165,10 +165,10 @@ struct RootView: View {
         }
     }
 
-    private func sidebarCategories(_ coverage: StorageCoverage) -> [(CategoryBucket, Int64)] {
+    private func sidebarCategories(_ coverage: StorageCoverage) -> [CategoryShare] {
         AutopsyModel(coverage: coverage, items: session.items, volumeName: session.volumeName, cancelled: session.scanCancelled)
             .categoryShares
-            .filter { $0.1 > 0 }
+            .filter { $0.bytes > 0 }
     }
 
     private var overviewA11y: String {
