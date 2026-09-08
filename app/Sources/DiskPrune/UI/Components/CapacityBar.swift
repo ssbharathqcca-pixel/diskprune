@@ -20,47 +20,69 @@ struct CapacityBar: View {
     @State private var hovered: Int?
 
     var body: some View {
-        GeometryReader { geo in
-            HStack(spacing: 1) {
-                if loading || total <= 0 || segments.isEmpty {
-                    Capsule()
-                        .fill(Color(nsColor: .quaternaryLabelColor))
-                } else {
-                    ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
-                        segmentView(segment, width: width(for: segment, in: geo.size.width))
-                            .opacity(hovered == nil || hovered == index ? 1 : 0.6)
-                            .onHover { inside in
-                                hovered = inside ? index : (hovered == index ? nil : hovered)
+        // Overlay GeometryReader on a height-capped clear view so the reader
+        // never inherits an unbounded ScrollView proposal. A top-level
+        // GeometryReader inside StorageAutopsyView's ScrollView reported
+        // non-finite width on macos-latest, then HatchSegment.frame(width:)
+        // hung hosted 03/09 (0c24ff78). Appearance is unchanged when the
+        // parent proposes a normal width.
+        Color.clear
+            .frame(height: height)
+            .frame(maxWidth: .infinity)
+            .overlay {
+                GeometryReader { geo in
+                    let barWidth = Self.finiteWidth(geo.size.width)
+                    HStack(spacing: 1) {
+                        if loading || total <= 0 || segments.isEmpty || barWidth <= 0 {
+                            Capsule()
+                                .fill(Color(nsColor: .quaternaryLabelColor))
+                        } else {
+                            ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                                segmentView(segment, width: width(for: segment, in: barWidth))
+                                    .opacity(hovered == nil || hovered == index ? 1 : 0.6)
+                                    .onHover { inside in
+                                        hovered = inside ? index : (hovered == index ? nil : hovered)
+                                    }
+                                    .help(tooltip(segment))
                             }
-                            .help(tooltip(segment))
+                        }
                     }
                 }
             }
-        }
-        .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: Geometry.radiusControl, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Storage capacity")
-        .accessibilityValue(accessibilityValue)
+            .frame(height: height)
+            .clipShape(RoundedRectangle(cornerRadius: Geometry.radiusControl, style: .continuous))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Storage capacity")
+            .accessibilityValue(accessibilityValue)
+    }
+
+    private static func finiteWidth(_ value: CGFloat) -> CGFloat {
+        guard value.isFinite, value > 0 else { return 0 }
+        return min(value, 4096)
     }
 
     private func width(for segment: CapacitySegment, in totalWidth: CGFloat) -> CGFloat {
         guard total > 0 else { return 0 }
+        let safeWidth = Self.finiteWidth(totalWidth)
+        guard safeWidth > 0 else { return 2 }
         let gaps = CGFloat(max(segments.count - 1, 0))
-        let usable = max(totalWidth - gaps, 0)
-        return max(usable * CGFloat(segment.bytes) / CGFloat(total), 2)
+        let usable = max(safeWidth - gaps, 0)
+        let raw = usable * CGFloat(segment.bytes) / CGFloat(total)
+        guard raw.isFinite else { return 2 }
+        return min(max(raw, 2), safeWidth)
     }
 
     @ViewBuilder
     private func segmentView(_ segment: CapacitySegment, width: CGFloat) -> some View {
+        let w = Self.finiteWidth(width)
         switch segment.kind {
         case .category(let bucket):
             RoundedRectangle(cornerRadius: 0)
                 .fill(bucket.fill(colorScheme))
-                .frame(width: width)
+                .frame(width: w > 0 ? w : 2, height: height)
         case .notExamined:
             HatchSegment()
-                .frame(width: width)
+                .frame(width: w > 0 ? w : 2, height: height)
         }
     }
 

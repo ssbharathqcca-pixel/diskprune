@@ -3,11 +3,11 @@
 **Gate 4 is not passed by this workflow.**  
 A human still has to look at the screenshots (and, when possible, a real Mac). CI green here means “PNGs were produced from the production UI,” not “the UI is approved.”
 
-**Sidebar (P0, capture bug):** `RootView` implements Overview / Cleanup / Snapshots in a `.sidebar` `List`. `CALayer.render` drops `NSVisualEffectView`, which is why `8696e1d8` showed a blank ~240pt column. Capture recovers the live sidebar via `screencapture -l` from the workflow, then `CGWindowListCreateImage` (`.boundsIgnoreFraming`), else the on-screen `NSTableView` cell images/labels. `cacheDisplay` of the visual-effect view hung `bcc2b49e`.
+**Sidebar (P0, capture bug):** `RootView` implements Overview / Cleanup / Snapshots in a `.sidebar` `List`. `CALayer.render` drops `NSVisualEffectView`, which is why `8696e1d8` showed a blank ~240pt column. Capture recovers the live sidebar via `screencapture -l` from the workflow, then `CGWindowListCreateImage` (`.boundsIgnoreFraming`), else the on-screen `NSTableView` cell images/labels. `cacheDisplay` of the visual-effect view hung `bcc2b49e`. On `0c24ff78` the blank-column detector missed a uniform gray sidebar (split divider contrast), so 01/02 stayed `live-window-layer`. The detector now insets past the divider.
 
 **Receipt (P0):** copy is “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 and the guardrail ban `reclaim` in `ReceiptView` / `CleanupPlanView`.
 
-**ingestScan hang (P1):** live Overview + Autopsy hatch + Storage sidebar in one update hung the runner. Fixture autopsy/category/cleanup are hosted production views; live ingest is last and switches to Cleanup first.
+**Autopsy hang (P1):** hosted `StorageAutopsyView` hung `0c24ff78` after `hosted 03-overview-autopsy begin` with 0 autopsy PNGs. `CapacityBar` used a top-level `GeometryReader` inside the autopsy `ScrollView`; a non-finite width plus `HatchSegment.frame(width:)` never returned. `CapacityBar` now overlays a height-capped finite reader and clamps segment widths. Autopsy shots prefer `screencapture -l` of the aux window before `CALayer.render`. Live `ingestScan` into `RootView` is still not driven (same hang class).
 
 Related:
 
@@ -27,8 +27,8 @@ On `macos-latest`, the workflow:
 4. The env-gated harness (inert in normal launches) drives the production `RootView` already on screen.
 5. Writes PNGs from the live window:
    - `CALayer.render` first, written to disk immediately so a hang later cannot produce 0 PNGs.
-   - If the left ~240pt sidebar column has no contrast (NSVisualEffectView is a window-server filter and does not flatten), try `CGWindowListCreateImage` of the on-screen window (real vibrancy). If Screen Recording TCC denies it, composite the live `NSTableView` cell labels at their real frames. That is capture recovery from the production sidebar, not a second UI.
-   - Production child views (inspector, dry-run, receipt, settings, autopsy, category, cleanup) are hosted in an auxiliary on-screen `NSWindow` and flattened with `CALayer.render`.
+   - Then `screencapture -l` of the live window (01/02 always; others if the left ~240pt column has no interior contrast). If Screen Recording TCC denies it, `CGWindowListCreateImage`, else composite the live `NSTableView` cell labels at their real frames. That is capture recovery from the production sidebar, not a second UI.
+   - Production child views (inspector, dry-run, receipt, settings, category, cleanup, snapshots-with-dates, autopsy) are hosted in an auxiliary on-screen `NSWindow`. Most flatten with `CALayer.render`. Autopsy prefers `screencapture -l` of that aux window.
 6. **Does not** use `ImageRenderer` (on macOS it draws `List` / `TabView` / `Form` as a yellow prohibition placeholder).
 7. **Does not** host a second `RootView` and call `displayIgnoringOpacity` (that hung the runner on List).
 8. **Does not** set `canDrawSubviewsIntoLayer` on `NSVisualEffectView` (that hung run [34288655442](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34288655442) on `bcc2b49e` with 0 PNGs).
@@ -40,33 +40,36 @@ It does **not** click **Move to Trash**. It does **not** call `CleanupExecutor`.
 
 A 200-second watchdog writes `COMPLETE` if a later shot hangs, so CI can still upload the shots already taken.
 
-
 ---
 
-## What is rendered from the real app
+## Latest inspected artifact — `0c24ff78` run 17
 
-| Shot | Captured on `8696e1d8`? | How | Fixture? |
+Artifact: [visual-qa-0c24ff7825a25237a6ee49f86a3a0940c68fbb4a](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34291508834/artifacts/10081671973)  
+Run: [34291508834](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34291508834)  
+42 PNGs. `DONE` = `checkpoint-before-autopsy`. Harness hung on hosted `StorageAutopsyView` (last log: `hosted 03-overview-autopsy begin dark=false 1100x720`).
+
+| Shot | On `0c24ff78`? | How | Fixture? |
 | --- | --- | --- | --- |
-| `01-first-launch` | **yes** live window, light+dark, 1100 and 880 | Live `RootView` idle | no |
+| `01-first-launch` | **yes** live window, light+dark, 1100 and 880 | Live `RootView` idle. Sidebar column still blank (`source=live-window-layer`) | no |
 | `02-scan-progress` | **yes** live window, light+dark, 1100 and 880 | Live `RootView`, `phase = .scanning` | probe labels only |
-| `03-overview-autopsy` | **NO** — live List/autopsy hung; watchdog collected Phase A | would be live `RootView` after `ingestScan` | coverage + items |
-| `04-category-detail` | **NO** — same hang | live Developer destination | items from rules |
-| `05-cleanup-candidates` | **NO** — same hang | live Cleanup + plan footer | items from rules |
+| `03-overview-autopsy` | **NO** — hosted `StorageAutopsyView` hung | would be hosted production autopsy | coverage + items |
+| `04-category-detail` | **yes** light+dark, 1100 and 880 | Hosted `ResultsView` Developer | items from rules |
+| `05-cleanup-candidates` | **yes** light+dark, 1100 and 880 | Hosted `ResultsView` Cleanup + Review Cleanup footer | items from rules |
 | `06-item-inspector` | **yes** aux window 420×640, light+dark | Production `ItemDetailView` | Safe item |
 | `07-snapshots` | **yes** empty state, light+dark, 1100 and 880 | Production `SnapshotView` | empty summary |
-| `07b-snapshots-list` | **NO** — hang before dates list | live Snapshots destination | 3 dates |
-| `08-empty-no-candidates` | **NO** — hang | live Cleanup, no plannable items | protected + docker-raw |
-| `09-overview-partial` | **NO** — hang | live Overview + permission paths | partial coverage |
+| `07b-snapshots-list` | **yes** light+dark, 1100 and 880 | Hosted `SnapshotView` with 3 dates + inspect-only copy | 3 dates |
+| `08-empty-no-candidates` | **yes** light+dark, 1100 and 880 | Hosted Cleanup, Protected/Advanced only | protected + docker-raw |
+| `09-overview-partial` | **NO** — never reached | would be hosted autopsy + permission paths | partial coverage |
 | `10-inspector-protected` | **yes** aux window, light+dark | Production `ItemDetailView` | Documents rule |
 | `11-inspector-advanced` | **yes** aux window, light+dark | Production `ItemDetailView` | `docker-raw` sparse |
 | `12-dry-run` | **yes** light+dark | Production `DryRunSheet` — not executed | selected Safe items |
 | `13-receipt` | **yes** light+dark, three accounting lines | Production `ReceiptView` | constructed receipt |
 | `14-cleanup-failure` | **yes** light+dark | Production `ReceiptView` failed/skipped | constructed receipt |
-| `15-settings` | **yes** General pane, light+dark | Production `SettingsRootView` | none |
+| `15-settings` | **yes** General pane, light+dark | Production `SettingsRootView` (tab chrome incomplete in 520×360 pane) | none |
 
-26 unique PNGs uploaded from run [34284424915](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34284424915). Phase A (idle/scan + hosted child views) finished in ~20s. Phase B (`ingestScan` into the live `RootView`) hung; the 200s watchdog wrote `COMPLETE` so the artifact could upload.
+Inspected 04/05/07b/08 dark 1100 shots are production UI (Developer list, Cleanup checkboxes, snapshot dates, empty Protected/Advanced state). Receipt is three accounting lines + “Empty Trash to permanently remove these items from your Mac.” Missing rows are **NOT TESTED**, not a PASS.
 
-Light and dark: `NSApp.appearance`. Windows: **1100×720** and **880×560** for live `RootView`. Missing rows are **NOT TESTED**, not a PASS.
+CI jobs 1–5 on `0c24ff78`: GREEN. Build macOS App: GREEN. Visual QA workflow: SUCCESS (watchdog collected 42 PNGs).
 
 ---
 
@@ -85,15 +88,17 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
-- Overview / Autopsy with data, category List, Cleanup List, snapshot dates, empty-cleanup, and partial Overview — `ingestScan` into the live window hangs the GitHub-hosted runner (watchdog collects Phase A)
+- Overview / Autopsy with data (`03`, `09`) — hosted `StorageAutopsyView` hung `0c24ff78`; CapacityBar finite overlay + aux `screencapture` are in source but **not yet proven on macos-latest**
+- Live `RootView` after `ingestScan` (sidebar Storage section + in-window category/cleanup chrome)
+- Sidebar `NSVisualEffectView` vibrancy on 01/02 (`0c24ff78` still `live-window-layer`, blank left column)
+- Settings tab chrome in the hosted 520×360 pane
+- Window-server chrome (traffic lights / titlebar) on contentView layer shots
 - Canvas composition fidelity (Claude artifact login)
 - True device Light/Dark as a logged-in user, vs forced `NSAppearance`
 - Full Disk Access / TCC permission UI (CI cannot grant FDA)
 - Reduce Motion / Reduce Transparency / VoiceOver / Dynamic Type
 - Gatekeeper “right-click Open” on a customer Mac
 - Liquid Glass vs macOS 14 floor on a physical display
-- Window-server chrome (traffic lights / titlebar) — shots are `contentView` layers, not `screencapture`
-- That every List/autopsy state succeeded — if the runner hangs, the watchdog uploads only the checkpointed shots
 
 If a packaged-app shot is missing, `manifest.json` → `limitations` says so. That is **NOT TESTED**, not a PASS.
 

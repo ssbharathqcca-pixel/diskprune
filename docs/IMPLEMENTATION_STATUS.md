@@ -1,4 +1,4 @@
-Last verified commit: `e2fdb04d` (Swift build/tests/schema/drift GREEN; guardrails FAILED on Visual QA `removeItem` handshake — fix in flight). Gate 4 remains NOT PASS.
+Last verified commit: `0c24ff78` (Swift build/tests/guardrails/schema/drift GREEN; Build macOS App GREEN; Visual QA run 17 SUCCESS with 42 PNGs). Gate 4 remains NOT PASS.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -8,8 +8,8 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] `web/dist/`, `web/node_modules/`, `worker/.wrangler/...` untracked
 - [x] `build-and-verify.sh` deleted
 - [x] CI jobs 1–5 added
-- [x] Guardrails pass locally (`scripts/ci-guardrails.sh`)
-- [x] `swift build` / `swift test` on macOS — evidence: GitHub Actions on `9280ee1`. Phase 3 UI will be re-evidenced on the next Actions run.
+- [x] Guardrails pass locally (`scripts/ci-guardrails.sh`) and on `0c24ff78` / `7a391077`
+- [x] `swift build` / `swift test` on macOS — evidence: GitHub Actions CI run 26 on `0c24ff78` (44 tests)
 
 ## Gate 1 — Filesystem safety
 
@@ -19,7 +19,7 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] `CleanupExecutor.execute(_:)` takes only `CleanupPlan`
 - [x] Per-item errors; vanished item does not abort the batch
 - [x] Unplanned sibling survives
-- [x] No `removeItem` in `Sources/DiskPrune`
+- [x] No `removeItem` in `Sources/DiskPrune` (`7a391077` handshake; `e2fdb04d` had failed this)
 - [x] `deletelocalsnapshots` absent from production source
 - [x] New UI does not call `ScannerActor.trash(urls:)` (source grep + UIPipelineTests)
 - [x] Legacy `ScannerActor.trash(urls:)` / `ContentView` / `SafetyRules` deleted after UI was CI-green (Rule 18)
@@ -47,11 +47,15 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Protected/advanced have no checkbox
 - [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
 - [x] CI screenshot workflow of the packaged app (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
+- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (`0c24ff78` hung on hosted `StorageAutopsyView`)
+- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED**
+- [ ] Sidebar `NSVisualEffectView` vibrancy in CI shots — **NOT TESTED** (01/02 still blank left column)
 - [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
 - [ ] Human review of CI screenshots — **NOT TESTED**
 - [ ] Canvas comparison — **NOT TESTED**
 - [ ] Stranger comprehension test — **NOT TESTED**
 
+CI Visual QA evidence on `0c24ff78` (42 PNGs, both themes): first launch, scan progress, category, cleanup, empty cleanup, inspector (safe/protected/advanced), snapshots empty + dated, dry run, receipt, cleanup failure, settings. **Not** autopsy/overview-with-data.
 
 **Gate 4: NOT PASS.**
 

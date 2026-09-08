@@ -66,6 +66,7 @@ private enum VisualQACatalog {
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
         "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
+        "Hosted StorageAutopsyView hung 0c24ff78 on CALayer.render / unbounded GeometryReader. CapacityBar now overlays a finite reader; autopsy shots prefer screencapture -l of the aux window.",
     ]
     private static var auxWindow: NSWindow?
 
@@ -198,7 +199,9 @@ private enum VisualQACatalog {
         try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
         VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
 
-        // Phase C last: Overview / Autopsy. Previously hung the runner.
+        // Phase C last: Overview / Autopsy. Hosted StorageAutopsyView hung
+        // 0c24ff78 after "begin" with 0 autopsy PNGs. CapacityBar is now
+        // finite; capture prefers screencapture -l of the aux window.
         for dark in [false, true] {
             applyAppearance(dark)
             fixture.destination = .overview
@@ -292,20 +295,34 @@ private enum VisualQACatalog {
 
         if screen.hasPrefix("01-") || screen.hasPrefix("02-") { proveSidebar(window) }
 
-        if leftColumnIsBlank(rep) {
-            VisualQARuntime.trace("left column blank on \(screen); trying window-server then live NSTableView cells")
+        // Always ask the shell for 01/02 (window chrome + sidebar vibrancy).
+        // leftColumnIsBlank used to miss a uniform gray column when the split
+        // divider added ≥12 luminance, so recovery never ran.
+        let wantChrome = screen.hasPrefix("01-") || screen.hasPrefix("02-") || leftColumnIsBlank(rep)
+        if wantChrome {
+            VisualQARuntime.trace("trying window-server for \(screen) blankLeft=\(leftColumnIsBlank(rep))")
             if let shot = requestShellCapture(relative: "\(dir)/\(screen).png"), !leftColumnIsBlank(shot) {
-                rep = shot
-                source = "live-window-screencapture"
-            } else if let server = windowServerSnapshot(window), !leftColumnIsBlank(server) {
-                rep = server
-                source = "live-window-CGWindowList"
-            } else {
-                compositeSidebarFromLiveHierarchy(onto: &rep, window: window)
-                source = "live-window-layer+sidebar-cells"
+                do {
+                    try rejectIfInvalid(shot, screen: screen)
+                    rep = shot
+                    source = "live-window-screencapture"
+                } catch {
+                    VisualQARuntime.trace("screencapture rejected for \(screen): \(error)")
+                }
             }
-            try rejectIfInvalid(rep, screen: screen)
-            try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: source)
+            if source == "live-window-layer" {
+                if let server = windowServerSnapshot(window), !leftColumnIsBlank(server) {
+                    rep = server
+                    source = "live-window-CGWindowList"
+                } else if leftColumnIsBlank(rep) {
+                    compositeSidebarFromLiveHierarchy(onto: &rep, window: window)
+                    source = "live-window-layer+sidebar-cells"
+                }
+            }
+            if source != "live-window-layer" {
+                try rejectIfInvalid(rep, screen: screen)
+                try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: source)
+            }
         }
         VisualQARuntime.trace("captured \(screen) live dark=\(dark) \(Int(size.width))x\(Int(size.height)) source=\(source)")
     }
@@ -333,19 +350,50 @@ private enum VisualQACatalog {
         hosting.appearance = appearance
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.wantsLayer = true
+        VisualQARuntime.trace("hosted \(screen) hosting constructed")
 
         let window = reusableAux(size: size, appearance: appearance)
         window.contentView = hosting
         window.setContentSize(size)
         window.orderFrontRegardless()
+        VisualQARuntime.trace("hosted \(screen) content set window=\(window.windowNumber)")
         waitForLayout(window, size: size, flush: false)
+        VisualQARuntime.trace("hosted \(screen) laid out bounds=\(window.contentView?.bounds ?? .zero)")
+
+        let dir = folder ?? "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
+        let relative = "\(dir)/\(screen).png"
+        let usesCanvas = screen.hasPrefix("03-") || screen.hasPrefix("09-")
+        if usesCanvas, let shot = captureAuxViaShell(window, relative: relative) {
+            do {
+                try rejectIfInvalid(shot, screen: screen)
+                try write(shot, relative: relative, screen: screen, dark: dark, size: size, fixture: fixture, source: "hosted-production-view-screencapture")
+                VisualQARuntime.trace("captured \(screen) hosted dark=\(dark) \(Int(size.width))x\(Int(size.height)) source=screencapture")
+                return
+            } catch {
+                VisualQARuntime.trace("aux screencapture rejected for \(screen): \(error); falling back")
+            }
+        }
 
         let target = window.contentView ?? hosting
+        VisualQARuntime.trace("hosted \(screen) flattening preferLayer=\(preferLayer)")
         let rep = preferLayer ? try flattenLayerFallback(target) : try flattenView(target)
         try rejectIfInvalid(rep, screen: screen)
-        let dir = folder ?? "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
-        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: preferLayer ? "hosted-production-view-layer" : "hosted-production-view-cacheDisplay")
+        try write(rep, relative: relative, screen: screen, dark: dark, size: size, fixture: fixture, source: preferLayer ? "hosted-production-view-layer" : "hosted-production-view-cacheDisplay")
         VisualQARuntime.trace("captured \(screen) hosted dark=\(dark) \(Int(size.width))x\(Int(size.height))")
+    }
+
+    /// Point screencapture -l at the aux window, then restore the live WINDOW_ID.
+    /// Does not spawn Process and does not call removeItem.
+    private static func captureAuxViaShell(_ window: NSWindow, relative: String) -> NSBitmapImageRep? {
+        let idFile = VisualQARuntime.outputRoot.appendingPathComponent("WINDOW_ID")
+        let previous = try? String(contentsOf: idFile, encoding: .utf8)
+        try? "\(window.windowNumber)".write(to: idFile, atomically: true, encoding: .utf8)
+        VisualQARuntime.trace("aux WINDOW_ID=\(window.windowNumber) for \(relative)")
+        let shot = requestShellCapture(relative: relative)
+        if let previous {
+            try? previous.write(to: idFile, atomically: true, encoding: .utf8)
+        }
+        return shot
     }
 
     private static func reusableAux(size: CGSize, appearance: NSAppearance) -> NSWindow {
@@ -456,15 +504,19 @@ private enum VisualQACatalog {
     private static func leftColumnIsBlank(_ rep: NSBitmapImageRep, points: CGFloat = 240) -> Bool {
         guard let data = rep.bitmapData else { return true }
         let scale = max(CGFloat(rep.pixelsWide) / max(rep.size.width, 1), 1)
-        let width = min(Int((points * scale).rounded()), rep.pixelsWide / 2)
+        // Inset past the split divider; a 1px separator used to push contrast
+        // over the threshold so recovery never ran on a gray sidebar.
+        let inset = max(Int((12 * scale).rounded()), 1)
+        let width = min(Int(((points - 24) * scale).rounded()), rep.pixelsWide / 2)
         let height = rep.pixelsHigh
         let bpp = max(rep.bitsPerPixel / 8, 1)
         let bytesPerRow = rep.bytesPerRow
         var minL = 255
         var maxL = 0
         var samples = 0
-        for y in Swift.stride(from: 0, to: height, by: 8) {
-            for x in Swift.stride(from: 0, to: width, by: 8) {
+        guard width > inset, height > inset * 2 else { return true }
+        for y in Swift.stride(from: inset, to: height - inset, by: 8) {
+            for x in Swift.stride(from: inset, to: width, by: 8) {
                 samples += 1
                 let pixel = data + y * bytesPerRow + x * bpp
                 let l = (Int(pixel[0]) + Int(pixel[1]) + Int(bpp > 2 ? pixel[2] : pixel[0])) / 3
@@ -472,7 +524,7 @@ private enum VisualQACatalog {
                 maxL = max(maxL, l)
             }
         }
-        return samples == 0 || (maxL - minL) < 12
+        return samples == 0 || (maxL - minL) < 18
     }
 
     private static func flattenLayerFallback(_ view: NSView) throws -> NSBitmapImageRep {
@@ -482,6 +534,9 @@ private enum VisualQACatalog {
         let bounds = view.bounds
         guard bounds.width.isFinite, bounds.height.isFinite, bounds.width > 8, bounds.height > 8 else {
             throw CaptureError.blank("zero-bounds")
+        }
+        guard bounds.width < 8_000, bounds.height < 8_000 else {
+            throw CaptureError.blank("huge-bounds \(Int(bounds.width))x\(Int(bounds.height))")
         }
         let scale = max(view.window?.backingScaleFactor ?? 2, 1)
         let pw = max(Int((bounds.width * scale).rounded()), 1)
