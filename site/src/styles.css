@@ -1,0 +1,99 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-background: #0b0c0e;
+  --color-foreground: #eceef2;
+  --color-card: #13151a;
+  --color-card-foreground: #eceef2;
+  --color-popover: #1a1d24;
+  --color-popover-foreground: #eceef2;
+  --color-primary: #d5dbe6;
+  --color-primary-foreground: #0b0c0e;
+  --color-secondary: #1a1d24;
+  --color-secondary-foreground: #eceef2;
+  --color-muted: #1a1d24;
+  --color-muted-foreground: #8b93a1;
+  --color-accent: #8eb4c4;
+  --color-accent-foreground: #0b0c0e;
+  --color-destructive: #c97a72;
+  --color-destructive-foreground: #0b0c0e;
+  --color-border: #262a33;
+  --color-input: #262a33;
+  --color-ring: #8eb4c4;
+  --color-ok: #7aaf93;
+  --color-ok-foreground: #0b0c0e;
+  --color-faint: #5c6472;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  --shadow-border: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --shadow-border-hover: 0 0 0 1px rgba(255, 255, 255, 0.13);
+  --shadow-window:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 24px 64px -24px rgba(0, 0, 0, 0.7);
+
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-image:
+      radial-gradient(1200px 500px at 80% -10%, rgba(142, 180, 196, 0.07), transparent 55%),
+      radial-gradient(900px 420px at -10% 0%, rgba(213, 219, 230, 0.04), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 40%, transparent);
+    color: var(--color-foreground);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
