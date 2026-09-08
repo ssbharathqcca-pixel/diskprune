@@ -1,4 +1,4 @@
-Last verified commit: `b5594065` (CI + macOS build green; Visual QA screenshot job failed — hosted RootView hung on category-detail List). Visual QA follow-up is on this tree.
+Last verified commit: `8696e1d8` (CI 44/44, guardrails, schema, drift, macOS build GREEN. Visual QA workflow GREEN with 26 production PNGs; List/autopsy screens still NOT TESTED in CI).
 
 An item is `[x]` only after its acceptance evidence exists.
 

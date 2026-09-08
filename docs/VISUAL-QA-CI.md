@@ -37,30 +37,28 @@ A 200-second watchdog writes `COMPLETE` if a later shot hangs, so CI can still u
 
 ## What is rendered from the real app
 
-| Shot | How CI tries to capture it | Fixture? |
-| --- | --- | --- |
-| `01-first-launch` | Live `RootView` window, idle | no |
-| `02-scan-progress` | Live `RootView`, `phase = .scanning` | probe labels only |
-| `03-overview-autopsy` | Live `RootView` after `ingestScan` (last; watchdog if hang) | coverage + items |
-| `04-category-detail` | Live `RootView`, sidebar Developer | items from rules |
-| `05-cleanup-candidates` | Live `RootView`, Cleanup + plan footer | items from rules |
-| `06-item-inspector` | Production `ItemDetailView` in aux window | Safe item |
-| `06b-inspector-in-root` | Live `RootView` with inspector column | Safe item |
-| `07-snapshots` | Production `SnapshotView` empty state | empty summary |
-| `07b-snapshots-list` | Live `RootView` Snapshots destination | 3 dates, inspect-only |
-| `08-empty-no-candidates` | Live `RootView` Cleanup with no plannable items | protected + docker-raw |
-| `09-overview-partial` | Live `RootView` with permission-limited paths (last) | partial coverage |
-| `10-inspector-protected` | Production `ItemDetailView`, Documents rule | protected |
-| `11-inspector-advanced` | Production `ItemDetailView`, `docker-raw` | advanced / sparse |
-| `12-dry-run` | Production `DryRunSheet` — **not executed** | selected Safe items |
-| `13-receipt` | Production `ReceiptView` (exactly three accounting lines) | constructed receipt |
-| `14-cleanup-failure` | Production `ReceiptView` failed/skipped | constructed receipt |
-| `15-settings` | Production `SettingsRootView` | none |
+| Shot | Captured on `8696e1d8`? | How | Fixture? |
+| --- | --- | --- | --- |
+| `01-first-launch` | **yes** live window, light+dark, 1100 and 880 | Live `RootView` idle | no |
+| `02-scan-progress` | **yes** live window, light+dark, 1100 and 880 | Live `RootView`, `phase = .scanning` | probe labels only |
+| `03-overview-autopsy` | **NO** — live List/autopsy hung; watchdog collected Phase A | would be live `RootView` after `ingestScan` | coverage + items |
+| `04-category-detail` | **NO** — same hang | live Developer destination | items from rules |
+| `05-cleanup-candidates` | **NO** — same hang | live Cleanup + plan footer | items from rules |
+| `06-item-inspector` | **yes** aux window 420×640, light+dark | Production `ItemDetailView` | Safe item |
+| `07-snapshots` | **yes** empty state, light+dark, 1100 and 880 | Production `SnapshotView` | empty summary |
+| `07b-snapshots-list` | **NO** — hang before dates list | live Snapshots destination | 3 dates |
+| `08-empty-no-candidates` | **NO** — hang | live Cleanup, no plannable items | protected + docker-raw |
+| `09-overview-partial` | **NO** — hang | live Overview + permission paths | partial coverage |
+| `10-inspector-protected` | **yes** aux window, light+dark | Production `ItemDetailView` | Documents rule |
+| `11-inspector-advanced` | **yes** aux window, light+dark | Production `ItemDetailView` | `docker-raw` sparse |
+| `12-dry-run` | **yes** light+dark | Production `DryRunSheet` — not executed | selected Safe items |
+| `13-receipt` | **yes** light+dark, three accounting lines | Production `ReceiptView` | constructed receipt |
+| `14-cleanup-failure` | **yes** light+dark | Production `ReceiptView` failed/skipped | constructed receipt |
+| `15-settings` | **yes** General pane, light+dark | Production `SettingsRootView` | none |
 
-Light and dark: `NSApp.appearance` + `.preferredColorScheme`.  
-Windows: **1100×720** and **880×560** for `RootView`. Sheets use their native sizes.
+26 unique PNGs uploaded from run [34284424915](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34284424915). Phase A (idle/scan + hosted child views) finished in ~20s. Phase B (`ingestScan` into the live `RootView`) hung; the 200s watchdog wrote `COMPLETE` so the artifact could upload.
 
-If a row is missing from `manifest.json` → `shots`, that screen is **NOT TESTED**, not a PASS. The previous hosted-RootView attempt hung on `04-category-detail`; this revision captures List states from the live window after the child-view checkpoint.
+Light and dark: `NSApp.appearance`. Windows: **1100×720** and **880×560** for live `RootView`. Missing rows are **NOT TESTED**, not a PASS.
 
 ---
 
@@ -79,7 +77,7 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
-- Whether a stranger understands the Overview (comprehension, not pixels)
+- Overview / Autopsy with data, category List, Cleanup List, snapshot dates, empty-cleanup, and partial Overview — `ingestScan` into the live window hangs the GitHub-hosted runner (watchdog collects Phase A)
 - Canvas composition fidelity (Claude artifact login)
 - True device Light/Dark as a logged-in user, vs forced `NSAppearance`
 - Full Disk Access / TCC permission UI (CI cannot grant FDA)
