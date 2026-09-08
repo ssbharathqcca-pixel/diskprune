@@ -3,6 +3,12 @@
 **Gate 4 is not passed by this workflow.**  
 A human still has to look at the screenshots (and, when possible, a real Mac). CI green here means “PNGs were produced from the production UI,” not “the UI is approved.”
 
+**Sidebar (P0, capture bug):** `RootView` implements Overview / Cleanup / Snapshots in a `.sidebar` `List`. `CALayer.render` drops `NSVisualEffectView`, which is why `8696e1d8` showed a blank ~240pt column. Capture recovers the live sidebar via `screencapture -l` from the workflow, then `CGWindowListCreateImage` (`.boundsIgnoreFraming`), else the on-screen `NSTableView` cell images/labels. `cacheDisplay` of the visual-effect view hung `bcc2b49e`.
+
+**Receipt (P0):** copy is “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 and the guardrail ban `reclaim` in `ReceiptView` / `CleanupPlanView`.
+
+**ingestScan hang (P1):** live Overview + Autopsy hatch + Storage sidebar in one update hung the runner. Fixture autopsy/category/cleanup are hosted production views; live ingest is last and switches to Cleanup first.
+
 Related:
 
 - Human protocol: [`VISUAL_QA.md`](VISUAL_QA.md)

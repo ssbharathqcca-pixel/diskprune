@@ -64,8 +64,7 @@ private enum VisualQACatalog {
         "Gate 4 remains NOT PASS. These PNGs are supplemental evidence for a human reviewer.",
         "ImageRenderer is not used (List/TabView/Form render as a yellow prohibition placeholder).",
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
-        "RootView shots flatten the live window with CALayer.render first so a PNG is always on disk. Full-window cacheDisplay of NSVisualEffectView is not used (canDrawSubviewsIntoLayer hung bcc2b49e; CALayer.render drops sidebar vibrancy).",
-        "If the left 240pt column is blank, try CGWindowListCreateImage (real window-server pixels). If TCC denies it, live NSTableView cell labels are composited at their real frames — capture recovery, not a second UI.",
+        "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
     ]
     private static var auxWindow: NSWindow?
@@ -125,7 +124,12 @@ private enum VisualQACatalog {
         guard let window = mainWindow() else { throw CaptureError.noWindow }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        VisualQARuntime.trace("window ready title=\(window.title) count=\(NSApp.windows.count)")
+        try? "\(window.windowNumber)".write(
+            to: VisualQARuntime.outputRoot.appendingPathComponent("WINDOW_ID"),
+            atomically: true,
+            encoding: .utf8
+        )
+        VisualQARuntime.trace("window ready title=\(window.title) id=\(window.windowNumber) count=\(NSApp.windows.count)")
 
         let knowledge = live.knowledge
         let wide = CGSize(width: 1100, height: 720)
@@ -317,8 +321,11 @@ private enum VisualQACatalog {
         if screen.hasPrefix("01-") || screen.hasPrefix("02-") { proveSidebar(window) }
 
         if leftColumnIsBlank(rep) {
-            VisualQARuntime.trace("left column blank on \(screen); trying CGWindowListCreateImage then live NSTableView cells")
-            if let server = windowServerSnapshot(window), !leftColumnIsBlank(server) {
+            VisualQARuntime.trace("left column blank on \(screen); trying window-server then live NSTableView cells")
+            if let shot = requestShellCapture(relative: "\(dir)/\(screen).png"), !leftColumnIsBlank(shot) {
+                rep = shot
+                source = "live-window-screencapture"
+            } else if let server = windowServerSnapshot(window), !leftColumnIsBlank(server) {
                 rep = server
                 source = "live-window-CGWindowList"
             } else {
@@ -527,6 +534,32 @@ private enum VisualQACatalog {
         return NSBitmapImageRep(cgImage: image)
     }
 
+    /// Ask visual-qa.sh to run `/usr/sbin/screencapture -l` on the live window.
+    /// The shell is outside the Swift Process guardrail. Returns nil on timeout/TCC.
+    private static func requestShellCapture(relative: String) -> NSBitmapImageRep? {
+        let root = VisualQARuntime.outputRoot
+        let request = root.appendingPathComponent("CAPTURE_REQUEST")
+        let done = root.appendingPathComponent("CAPTURE_DONE")
+        let png = root.appendingPathComponent(relative).deletingPathExtension().appendingPathExtension("ws.png")
+        try? FileManager.default.removeItem(at: done)
+        try? FileManager.default.removeItem(at: png)
+        try? relative.write(to: request, atomically: true, encoding: .utf8)
+        for _ in 0..<24 {
+            spin(0.15)
+            if FileManager.default.fileExists(atPath: done.path) { break }
+        }
+        try? FileManager.default.removeItem(at: request)
+        guard FileManager.default.fileExists(atPath: png.path),
+              let data = try? Data(contentsOf: png),
+              let rep = NSBitmapImageRep(data: data)
+        else {
+            VisualQARuntime.trace("screencapture missing for \(relative)")
+            return nil
+        }
+        VisualQARuntime.trace("screencapture \(rep.pixelsWide)x\(rep.pixelsHigh) blankLeft=\(leftColumnIsBlank(rep))")
+        return rep
+    }
+
     /// Window-server snapshot of the on-screen window. Captures NSVisualEffectView
     /// vibrancy that CALayer.render drops. Returns nil if TCC denies Screen Recording.
     private static func windowServerSnapshot(_ window: NSWindow) -> NSBitmapImageRep? {
@@ -536,7 +569,7 @@ private enum VisualQACatalog {
             .null,
             .optionIncludingWindow,
             windowID,
-            [.boundsIgnoreZOrder, .bestResolution]
+            [.boundsIgnoreFraming, .bestResolution]
         ) else {
             VisualQARuntime.trace("CGWindowListCreateImage nil windowID=\(windowID)")
             return nil
@@ -603,24 +636,55 @@ private enum VisualQACatalog {
             let cellFrame = cell.convert(cell.bounds, to: content)
             if selected {
                 NSColor.selectedContentBackgroundColor.setFill()
-                NSBezierPath(roundedRect: NSRect(x: 8, y: cellFrame.minY, width: sidebarWidth - 16, height: max(cellFrame.height, 1)), xRadius: 6, yRadius: 6).fill()
+                NSBezierPath(
+                    roundedRect: NSRect(x: 8, y: cellFrame.minY, width: sidebarWidth - 16, height: max(cellFrame.height, 1)),
+                    xRadius: 6,
+                    yRadius: 6
+                ).fill()
             }
-            var labels: [String] = []
-            collectText(cell, into: &labels)
-            if labels.isEmpty, let accessibility = cell.accessibilityLabel(), !accessibility.isEmpty {
-                labels.append(accessibility)
+            let painted = paintProductionCell(cell, into: content)
+            if painted == 0 {
+                var labels: [String] = []
+                collectText(cell, into: &labels)
+                if labels.isEmpty, let accessibility = cell.accessibilityLabel(), !accessibility.isEmpty {
+                    labels.append(accessibility)
+                }
+                if let text = labels.first, !text.isEmpty {
+                    let color: NSColor = selected ? .alternateSelectedControlTextColor : .labelColor
+                    let attrs: [NSAttributedString.Key: Any] = [
+                        .font: NSFont.systemFont(ofSize: 13),
+                        .foregroundColor: color
+                    ]
+                    let drawRect = NSRect(x: 28, y: cellFrame.minY + 2, width: sidebarWidth - 40, height: max(cellFrame.height - 4, 12))
+                    NSAttributedString(string: text, attributes: attrs).draw(with: drawRect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+                    drawn += 1
+                }
+            } else {
+                drawn += 1
             }
-            guard let text = labels.first, !text.isEmpty else { continue }
-            let color: NSColor = selected ? .alternateSelectedControlTextColor : .labelColor
-            let attrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 13),
-                .foregroundColor: color
-            ]
-            let drawRect = NSRect(x: 28, y: cellFrame.minY + 2, width: sidebarWidth - 40, height: max(cellFrame.height - 4, 12))
-            NSAttributedString(string: text, attributes: attrs).draw(with: drawRect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
-            drawn += 1
         }
         return drawn
+    }
+
+    /// Draw the live cell's NSImageView / NSTextField at their real frames.
+    /// This is the production sidebar hierarchy, not a second UI.
+    @discardableResult
+    private static func paintProductionCell(_ cell: NSView, into content: NSView) -> Int {
+        var painted = 0
+        func walk(_ view: NSView) {
+            let rect = view.convert(view.bounds, to: content)
+            if let imageView = view as? NSImageView, let image = imageView.image, rect.width > 2, rect.height > 2 {
+                image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+                painted += 1
+            }
+            if let field = view as? NSTextField, !field.stringValue.isEmpty {
+                field.attributedStringValue.draw(in: rect)
+                painted += 1
+            }
+            for sub in view.subviews { walk(sub) }
+        }
+        walk(cell)
+        return painted
     }
 
     private static func writableCopy(_ rep: NSBitmapImageRep, pointSize: CGSize) -> NSBitmapImageRep? {

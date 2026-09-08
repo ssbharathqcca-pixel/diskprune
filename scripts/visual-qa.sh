@@ -38,6 +38,35 @@ killall DiskPrune >/dev/null 2>&1 || true
 echo "Opening $APP via LaunchServices"
 open "$APP"
 
+# Capture the live window via screencapture -l when the harness requests it.
+# This is the window-server image, including NSVisualEffectView sidebar vibrancy.
+# Runs in the shell so DiskPrune source does not spawn Process (guardrail).
+(
+  while true; do
+    if [[ -f "$OUT/COMPLETE" ]]; then
+      break
+    fi
+    if [[ -f "$OUT/CAPTURE_REQUEST" && -f "$OUT/WINDOW_ID" ]]; then
+      dest="$(tr -d '\n' < "$OUT/CAPTURE_REQUEST")"
+      wid="$(tr -d '\n' < "$OUT/WINDOW_ID")"
+      if [[ -n "$dest" && -n "$wid" ]]; then
+        mkdir -p "$OUT/$(dirname "$dest")"
+        ws="${dest%.png}.ws.png"
+        if /usr/sbin/screencapture -x -l "$wid" "$OUT/$ws" 2>/dev/null; then
+          echo "screencapture $wid -> $ws"
+        else
+          echo "screencapture failed for $wid"
+          rm -f "$OUT/$ws"
+        fi
+      fi
+      rm -f "$OUT/CAPTURE_REQUEST"
+      date > "$OUT/CAPTURE_DONE"
+    fi
+    sleep 0.15
+  done
+) &
+WATCH_PID=$!
+
 done_file="$OUT/DONE"
 complete_file="$OUT/COMPLETE"
 saw_checkpoint=0
@@ -48,13 +77,16 @@ for i in $(seq 1 150); do
   fi
   if [[ -f "$done_file" && "$saw_checkpoint" -eq 0 ]]; then
     saw_checkpoint=1
-    echo "checkpoint (non-autopsy shots ready); waiting for COMPLETE"
+    echo "checkpoint; waiting for COMPLETE"
   fi
   if [[ -f "$OUT/harness.log" ]]; then
     tail -n 1 "$OUT/harness.log" || true
   fi
   sleep 2
 done
+
+kill "$WATCH_PID" >/dev/null 2>&1 || true
+wait "$WATCH_PID" 2>/dev/null || true
 
 if [[ -f "$OUT/harness.log" ]]; then
   echo "---- harness.log ----"
