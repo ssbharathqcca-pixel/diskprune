@@ -22,7 +22,7 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] No `removeItem` in `Sources/DiskPrune`
 - [x] `deletelocalsnapshots` absent from production source
 - [x] New UI does not call `ScannerActor.trash(urls:)` (source grep + UIPipelineTests)
-- [ ] Legacy `ScannerActor.trash(urls:)` still exists for Rule 18 until the UI replacement is CI-green, then deleted
+- [x] Legacy `ScannerActor.trash(urls:)` / `ContentView` / `SafetyRules` deleted after UI was CI-green (Rule 18)
 
 ## Gate 2 — Scanner and accounting
 

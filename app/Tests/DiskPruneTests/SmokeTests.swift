@@ -2,7 +2,8 @@ import XCTest
 @testable import DiskPrune
 
 final class SmokeTests: XCTestCase {
-    func testModuleLoads() {
-        XCTAssertFalse(SafetyRules.tier1Paths().isEmpty)
+    func testModuleLoads() throws {
+        let knowledge = try StorageKnowledge.load()
+        XCTAssertFalse(knowledge.publishedRuleIDs.isEmpty)
     }
 }

@@ -14,7 +14,7 @@ UI navigation (Design Guide PART 12): Overview · Cleanup · Snapshots. Scan is 
 - `App.swift` — WindowGroup + Settings scene
 - `UI/` — RootView, autopsy, scan progress, candidates, dry run, receipt, snapshots, settings
 - `Scanning/`, `Cleanup/`, `Knowledge/`, `Persistence/` — unchanged safety architecture
-- `ContentView.swift` / `ScannerActor.swift` / `SafetyRules.swift` — **legacy, not connected to the new UI** (Rule 18)
+- `ContentView.swift` / `ScannerActor.swift` / `SafetyRules.swift` — **deleted** after the new UI was CI-green (Rule 18)
 - `LicenseManager.swift` — unused by the new UI (Phase 5)
 
 ## Target boundaries

@@ -23,5 +23,5 @@ Moving to Trash does **not** immediately increase available capacity on the same
 
 ## Current code vs target
 
-The new UI calls only `CleanupExecutor.execute(_ plan: CleanupPlan)`. Legacy `ScannerActor.trash(urls:)` still exists on disk for Rule 18 and is not reachable from `App.swift` / `UI/`.
+The new UI calls only `CleanupExecutor.execute(_ plan: CleanupPlan)`. Legacy `ScannerActor.trash(urls:)` has been deleted (Rule 18).
 

@@ -8,7 +8,7 @@
 - Cleanup goes Scan → selection → `PlannedItem` → `CleanupPlan` → dry run → TOCTOU → `CleanupExecutor` → Trash → receipt. The new UI does not call `ScannerActor.trash(urls:)`.
 - Receipt shows three accounting lines: Estimated recoverable, Moved to Trash, Storage immediately available. Trashed bytes are never called freed.
 - Snapshots are inspect-only. No delete affordance and no snapshot-deletion command in the UI.
-- Licence tab is a non-activating shell. The new UI does not read `LicenseManager.isActivated`.
+- Legacy `ContentView`, `ScannerActor`, and `SafetyRules` deleted after the new UI was CI-green. The only remaining `trashItem` call is in `CleanupExecutor`.
 
 ### Fixes
 
