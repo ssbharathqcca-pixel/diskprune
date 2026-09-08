@@ -3,6 +3,7 @@ import Foundation
 
 /// Deterministic visual-QA data built from production models.
 /// Not a second accounting system. Not a production scan. Never executed.
+@MainActor
 enum VisualQAFixtures {
     static let capturedAt = Date(timeIntervalSince1970: 1_757_350_000)
 

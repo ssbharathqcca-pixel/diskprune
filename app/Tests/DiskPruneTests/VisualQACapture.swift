@@ -13,6 +13,7 @@ struct VisualQARecord: Codable {
     let fixture: Bool
 }
 
+@MainActor
 enum VisualQACapture {
     static var records: [VisualQARecord] = []
     static var limitations: [String] = []
@@ -271,10 +272,10 @@ enum VisualQACapture {
         guard width > 8, height > 8, let data = rep.bitmapData else { return true }
         var opaque = 0
         let bpp = max(rep.bitsPerPixel / 8, 1)
-        let stride = rep.bytesPerRow
-        for y in stride(from: 0, to: height, by: 16) {
-            for x in stride(from: 0, to: width, by: 16) {
-                let pixel = data + y * stride + x * bpp
+        let bytesPerRow = rep.bytesPerRow
+        for y in Swift.stride(from: 0, to: height, by: 16) {
+            for x in Swift.stride(from: 0, to: width, by: 16) {
+                let pixel = data + y * bytesPerRow + x * bpp
                 if bpp >= 4 {
                     if pixel[3] > 8 { opaque += 1 }
                 } else if pixel[0] + pixel[min(1, bpp - 1)] > 8 {
