@@ -5,6 +5,16 @@ node_modules/
 .tanstack/
 .wrangler/
 dist/
+web/dist/
+web/.astro/
 build/
 .swiftpm/
 .build/
+shared/*.generated.json
+*.p12
+*.p8
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/

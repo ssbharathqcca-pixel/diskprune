@@ -9,7 +9,7 @@ struct ContentView: View {
     @State private var showLicenseSheet = false
     @State private var licenseKey = ""
     @State private var activationError = false
-    
+
     var body: some View {
         NavigationSplitView {
             List {
@@ -23,8 +23,8 @@ struct ContentView: View {
             dashboardView
         }
         .background(
-            reduceTransparency ? 
-            AnyView(Color(nsColor: .windowBackgroundColor)) : 
+            reduceTransparency ?
+            AnyView(Color(nsColor: .windowBackgroundColor)) :
             AnyView(VisualEffectView(material: .sidebar, blendingMode: .behindWindow))
         )
         .sheet(isPresented: $showLicenseSheet) {
@@ -34,17 +34,17 @@ struct ContentView: View {
                     .bold()
                 Text("Scanning is free, but purging requires a valid license.")
                     .multilineTextAlignment(.center)
-                
+
                 TextField("Enter License Key", text: $licenseKey)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 300)
-                
+
                 if activationError {
                     Text("Invalid license key.")
                         .foregroundColor(.red)
                         .font(.caption)
                 }
-                
+
                 HStack {
                     Button("Cancel") {
                         showLicenseSheet = false
@@ -56,7 +56,6 @@ struct ContentView: View {
                             if valid == true {
                                 showLicenseSheet = false
                                 activationError = false
-                                // proceed with purge if needed
                             } else {
                                 activationError = true
                             }
@@ -64,10 +63,10 @@ struct ContentView: View {
                     }
                     .keyboardShortcut(.defaultAction)
                 }
-                
+
                 Divider().frame(width: 200)
-                
-                Button("Buy License ($19)") {
+
+                Button("Buy License ($14.99)") {
                     if let url = URL(string: "https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200") {
                         NSWorkspace.shared.open(url)
                     }
@@ -78,15 +77,15 @@ struct ContentView: View {
             .frame(width: 400)
         }
     }
-    
+
     private var dashboardView: some View {
         VStack(spacing: 20) {
             Text("DiskPrune Suite")
                 .font(.largeTitle)
                 .bold()
-            
+
             VStack {
-                Text("Space Found to Free")
+                Text("Estimated recoverable")
                     .font(.headline)
                     .foregroundColor(.secondary)
                 Text(ByteCountFormatter.string(fromByteCount: totalFreed, countStyle: .file))
@@ -94,14 +93,14 @@ struct ContentView: View {
                     .monospacedDigit()
             }
             .padding()
-            
+
             HStack(spacing: 16) {
                 Button(action: {
                     isScanning = true
                     Task {
                         let scanner = ScannerActor()
                         scannedURLs = await scanner.scanSafeTier()
-                        totalFreed = 0 // would calculate size here in reality
+                        totalFreed = 0
                         try? await Task.sleep(nanoseconds: 1_000_000_000)
                         isScanning = false
                     }
@@ -112,14 +111,13 @@ struct ContentView: View {
                         .padding(.vertical, 10)
                 }
                 .disabled(isScanning || isPurging)
-                
+
                 Button(action: {
                     if LicenseManager.shared.isActivated {
                         isPurging = true
                         Task {
                             let scanner = ScannerActor()
                             try? await scanner.trash(urls: scannedURLs)
-                            scanner.flushAPFSSnapshots()
                             scannedURLs.removeAll()
                             totalFreed = 0
                             isPurging = false
@@ -128,7 +126,7 @@ struct ContentView: View {
                         showLicenseSheet = true
                     }
                 }) {
-                    Text(isPurging ? "Purging..." : "Purge")
+                    Text(isPurging ? "Moving to Trash..." : "Move to Trash")
                         .font(.headline)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
@@ -144,7 +142,7 @@ struct ContentView: View {
 struct VisualEffectView: NSViewRepresentable {
     var material: NSVisualEffectView.Material
     var blendingMode: NSVisualEffectView.BlendingMode
-    
+
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = material
@@ -152,7 +150,7 @@ struct VisualEffectView: NSViewRepresentable {
         view.state = .active
         return view
     }
-    
+
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode

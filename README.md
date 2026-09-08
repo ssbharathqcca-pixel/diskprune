@@ -1,68 +1,68 @@
 # DiskPrune
 
-Native macOS storage manager. Scan free. Lifetime license $19.
+Native macOS storage manager. Scan free. Lifetime license **$14.99**.
 
-DiskPrune reclaims caches, Xcode DerivedData, Docker disk, and APFS local
-snapshots — then moves only what you approve to Trash. It is a SwiftUI app
-for macOS 14+, not a subscription cleaner.
+DiskPrune helps you understand why a Mac is full, then moves only what you
+approve to Trash. It does **not** permanently delete files, empty Trash,
+delete APFS snapshots, or delete Docker disk images.
 
 ## Repository layout
 
 | Path | What it is |
 | --- | --- |
 | [`app/`](app/) | Native SwiftUI Mac app (Swift 5.10, macOS 14+) |
-| [`site/`](site/) | Product website + interactive Mac-window demo |
-| [`web/`](web/) | Earlier Astro marketing stub (superseded by `site/`) |
-| [`worker/`](worker/) | Cloudflare Worker: Stripe webhook, license activate, key lookup |
-| [`.github/workflows/build-mac.yml`](.github/workflows/build-mac.yml) | Builds, ad-hoc signs, and uploads `DiskPrune.dmg` |
+| [`docs/`](docs/) | Architecture, safety, status, decisions |
+| [`site/`](site/) | Current preview website + simulated demo (to be ported) |
+| [`web/`](web/) | Astro stub — target website after the port |
+| [`worker/`](worker/) | Cloudflare Worker (pre-rewrite; signature verification is Phase 4) |
+| [`shared/`](shared/) | Canonical storage-rules (added in Phase 1) |
 
-## Native app
+## What the native app does today
 
-Safety engine (`SafetyRules.swift` + `ScannerActor.swift`):
+The shipping source is still the five-file baseline, with one safety change:
+**APFS snapshot deletion has been removed.**
 
-- **Tier 1 (safe, pre-selected):** `~/Library/Caches`, logs, Xcode DerivedData, npm / Cargo / Gradle caches
-- **Tier 2 (review required):** Containers, Application Support, Docker Desktop
-- **Purge:** `FileManager.trashItem` — not `rm -rf`
-- **APFS:** `tmutil deletelocalsnapshots /` after a purge
-- **License:** scan is free; purge POSTs to `api.diskprune.com/v1/licenses/activate` and stores the key in Keychain
+- Scan walks hardcoded Tier 1 cache paths (`SafetyRules.tier1Paths()`)
+- Cleanup still uses `FileManager.trashItem` on the scanned URL list (legacy path; replaced in Phase 2 by `CleanupPlan` → `CleanupExecutor`)
+- Scan is free; purge is license-gated via `api.diskprune.com`
+- Sizing, Storage Autopsy, TOCTOU, and the new UI are not in this tree yet
 
 Build on a Mac:
 
 ```bash
 cd app
-swift build -c release
+swift build
+swift test
 ```
 
-GitHub Actions on `macos-14` packages an ad-hoc signed `.dmg` and publishes it
-on version tags. On Sequoia: System Settings → Privacy & Security → Open Anyway.
+## What DiskPrune will not do (v1)
 
-Download: [latest DiskPrune.dmg](https://github.com/ssbharathqcca-pixel/diskprune/releases/latest/download/DiskPrune.dmg)
+- Permanently delete (`removeItem` / `rm -rf`)
+- Empty Trash
+- Run `tmutil deletelocalsnapshots`
+- Delete `Docker.raw` or Docker data directories
+- Claim that moving files to Trash has "freed" or "reclaimed" the space
 
-## Product site
+See [`docs/CLEANUP_SAFETY.md`](docs/CLEANUP_SAFETY.md) and [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
 
-`site/` is the current marketing site and an in-browser demo of the Mac app.
-The demo enumerates the same paths as the Swift scanner on a simulated
-developer disk. It does **not** read or delete files on your machine.
+## CI
 
-```bash
-cd site
-npm install
-npm run dev
-```
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a debug Swift build,
+Swift tests, and destructive-operation guardrails on every push and PR.
 
-- `/` landing, comparison, pricing
-- `/app` full demo window
-- `/blog/...` guides (System Data, DerivedData, Docker disk, purgeable space)
-- `/success` license receipt (preview issues a local `PRUNE-XXXX` key)
+The macOS DMG workflow is still the ad-hoc, arm64-only pipeline. Universal
+Developer ID signing is Phase 6 and requires Apple secrets.
 
-Demo license for the browser preview: `PRUNE-DEMO-2026-LIFE`
+## Website
 
-Buy lifetime: [Stripe checkout](https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200)
+`site/` is a simulated demo. It does not scan this machine. It will be ported
+to `web/` (Astro) and then deleted. Do not treat the demo as more capable than
+the binary.
 
-## License worker
+## License worker (current, not the target)
 
-`worker/` is the `diskprune-licensing` Cloudflare Worker (`api.diskprune.com`):
+`worker/` currently stores keys in KV, does **not** verify Stripe signatures,
+and exposes `GET /key-lookup`. That endpoint is a known defect (B-12) and will
+be replaced by a status-only checkout endpoint that never returns a key.
 
-- `POST /webhook` — Stripe `checkout.session.completed` → `PRUNE-XXXX-XXXX-XXXX` in KV
-- `POST /v1/licenses/activate` — used by the native app
-- `GET /key-lookup?session_id=` — used by the success page
+Buy: [Stripe checkout](https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200)

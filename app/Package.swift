@@ -9,13 +9,17 @@ let package = Package(
     products: [
         .executable(name: "DiskPrune", targets: ["DiskPrune"])
     ],
-    dependencies: [
-    ],
+    dependencies: [],
     targets: [
         .executableTarget(
             name: "DiskPrune",
             dependencies: [],
             path: "Sources/DiskPrune"
+        ),
+        .testTarget(
+            name: "DiskPruneTests",
+            dependencies: ["DiskPrune"],
+            path: "Tests/DiskPruneTests"
         )
     ]
 )
