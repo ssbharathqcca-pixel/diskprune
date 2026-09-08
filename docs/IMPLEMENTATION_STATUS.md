@@ -1,4 +1,4 @@
-Last verified commit: pending Phase 3 push
+Last verified commit: `917ffb7d` (CI green). Visual QA package is a follow-up commit on this tree.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -45,8 +45,12 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Dry run precedes cleanup; "Nothing has changed yet."
 - [x] Receipt three-line accounting
 - [x] Protected/advanced have no checkbox
-- [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED** in this Linux sandbox
-- [ ] Canvas comparison — **NOT TESTED** (canvas unreachable)
+- [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
+- [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
+- [ ] Canvas comparison — **NOT TESTED**
+- [ ] Stranger comprehension test — **NOT TESTED**
+
+**Gate 4: NOT PASS.**
 
 ## Gate 5 — Signed universal release
 
