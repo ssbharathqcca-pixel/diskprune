@@ -18,3 +18,7 @@ shared/*.generated.json
 !.env.example
 .idea/
 .vscode/
+visual-qa-shots/
+app/DiskPrune.app/
+app/DiskPrune.dmg
+

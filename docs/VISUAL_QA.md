@@ -1,8 +1,8 @@
 # Visual QA protocol — Phase 3
 
-**Status:** prepared for a human reviewer on a real Mac.  
-**Gate 4 does not pass until this protocol is completed.**  
-This is not a product-code change. Do not treat a downloaded DMG as Gate 4 PASS.
+**Status:** prepared for a human reviewer. Gate 4 does **not** pass until a human inspects the UI.  
+CI screenshots are **supplemental** — see [`VISUAL-QA-CI.md`](VISUAL-QA-CI.md). They do not convert Gate 4 to PASS.
+
 
 Authoritative documents:
 
@@ -15,7 +15,17 @@ Build under test: **`main` HEAD** (see About → version / `CFBundleVersion` = g
 
 ---
 
-## Get the build
+## Supplemental CI screenshots
+
+Download artifact `visual-qa-<sha>` from  
+https://github.com/ssbharathqcca-pixel/diskprune/actions/workflows/visual-qa.yml
+
+Use them to walk this checklist when you do not have a Mac. `manifest.json` always records Gate 4 as NOT PASS.
+
+---
+
+## Get the Mac build
+
 
 1. Open the latest successful **Build macOS App** run:  
    https://github.com/ssbharathqcca-pixel/diskprune/actions/workflows/build-mac.yml

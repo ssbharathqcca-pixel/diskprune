@@ -23,7 +23,8 @@ The running UI is Overview / Cleanup / Snapshots per [`docs/DESIGN-GUIDE.md`](do
 
 Cleanup path: `ScanEngine` → selection → `PlannedItem` → `CleanupPlan` → dry run → TOCTOU → `CleanupExecutor` → Trash → receipt (three accounting lines).
 
-**Gate 4 (visual QA) is not passed.** A human must inspect the Mac UI using [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md).
+**Gate 4 (visual QA) is not passed.** A human must inspect the UI using [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md). CI screenshots are supplemental ([`docs/VISUAL-QA-CI.md`](docs/VISUAL-QA-CI.md)).
+
 
 ### Visual QA build
 
