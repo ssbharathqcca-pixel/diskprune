@@ -20,11 +20,11 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BUILD_DIR/DiskPrune" "$APP/Contents/MacOS/DiskPrune"
 chmod +x "$APP/Contents/MacOS/DiskPrune"
 
-# SPM resource bundle (Bundle.module)
+# SPM resource bundle for Bundle.module (Contents/Resources only —
+# putting it next to the executable makes codesign reject MacOS/).
 shopt -s nullglob
 for bundle in "$BUILD_DIR"/*.bundle; do
   cp -R "$bundle" "$APP/Contents/Resources/"
-  cp -R "$bundle" "$APP/Contents/MacOS/"
 done
 shopt -u nullglob
 
@@ -75,7 +75,6 @@ cat > "$APP/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-codesign --force --sign - "$APP/Contents/MacOS/DiskPrune"
 codesign --force --sign - "$APP"
 
 rm -f "$DMG"
