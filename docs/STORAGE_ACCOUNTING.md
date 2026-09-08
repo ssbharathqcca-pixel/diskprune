@@ -24,7 +24,7 @@ Two scopes:
 
 ## Sparse files, compression, clones
 
-- Sparse (`Docker.raw`): `onDiskBytes` is allocated blocks; detail view also shows logical size.
+- Sparse (`Docker.raw`): `onDiskBytes` is allocated blocks; detail view also shows logical size. `st_blocks == 0` with `st_size > 0` is a valid sparse measurement — never substitute logical size.
 - APFS compression: `st_blocks` already reflects compressed allocation.
 - APFS clones: **not modelled**. Two clones can each report full size; removing one may free almost nothing.
 

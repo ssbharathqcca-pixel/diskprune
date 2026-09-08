@@ -63,7 +63,7 @@ enum DirectorySizer {
                 onDisk += st.onDiskBytes
                 logical += st.logicalBytes
                 if newToGlobal { globallyNew += st.onDiskBytes }
-                if st.objectType != .directory { files += 1 }
+                if st.objectType == .regularFile { files += 1 }
                 if let m = st.modified {
                     if newest == nil || m > newest! { newest = m }
                 }

@@ -50,9 +50,10 @@ enum FileIdentity {
         }
 
         let logical = Int64(st.st_size)
-        let allocated = Int64(st.st_blocks) * 512
-        let approximate = allocated == 0 && logical > 0
-        let onDisk = approximate ? logical : allocated
+        // Always st_blocks × 512. A sparse file (ftruncate / Docker.raw) reports
+        // st_blocks == 0 with st_size > 0; that is a valid measurement, not a
+        // reason to fall back to logical size.
+        let onDisk = Int64(st.st_blocks) * 512
 
         let modified: Date?
         let ts = st.st_mtimespec
@@ -71,7 +72,7 @@ enum FileIdentity {
                 onDiskBytes: onDisk,
                 linkCount: UInt64(st.st_nlink),
                 modified: modified,
-                sizeApproximate: approximate
+                sizeApproximate: false
             )
         )
     }
