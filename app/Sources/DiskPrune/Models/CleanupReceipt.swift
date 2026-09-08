@@ -25,7 +25,7 @@ enum ItemOutcome: Sendable, Codable, Equatable {
     case skipped(itemID: UUID, path: String, bytes: Int64, reason: SkipReason)
 }
 
-enum FailureReason: String, Codable, Equatable {
+enum FailureReason: String, Codable, Equatable, Error {
     case permissionDenied
     case trashUnavailable
     case crossVolume
@@ -34,7 +34,7 @@ enum FailureReason: String, Codable, Equatable {
     case unknown
 }
 
-enum SkipReason: String, Codable, Equatable {
+enum SkipReason: String, Codable, Equatable, Error {
     case vanished
     case becameSymlink
     case typeChanged

@@ -15,10 +15,16 @@ enum SpaceVerifier {
                 .volumeAvailableCapacityKey,
             ])
             guard let total = values.volumeTotalCapacity else { return nil }
-            let available = values.volumeAvailableCapacityForImportantUsage
-                ?? values.volumeAvailableCapacity
-            guard let available else { return nil }
-            return VolumeSpace(total: Int64(total), available: Int64(available), measuredAt: Date())
+            // ImportantUsage is Int64?; AvailableCapacity is Int?. Do not mix with ??.
+            let available: Int64
+            if let important = values.volumeAvailableCapacityForImportantUsage {
+                available = important
+            } else if let fallback = values.volumeAvailableCapacity {
+                available = Int64(fallback)
+            } else {
+                return nil
+            }
+            return VolumeSpace(total: Int64(total), available: available, measuredAt: Date())
         } catch {
             return nil
         }

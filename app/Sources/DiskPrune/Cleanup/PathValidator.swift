@@ -61,29 +61,29 @@ enum PathValidator {
     static func revalidateBeforeTrash(_ planned: PlannedItem) -> Result<Void, SkipReason> {
         switch FileIdentity.lstat(planned.url.path) {
         case .failure(.notFound):
-            return .failure(.vanished)
+            return .failure(SkipReason.vanished)
         case .failure:
-            return .failure(.vanished)
+            return .failure(SkipReason.vanished)
         case .success(let st):
             if st.objectType == .symlink {
-                return .failure(.becameSymlink)
+                return .failure(SkipReason.becameSymlink)
             }
             if st.objectType != planned.objectType {
-                return .failure(.typeChanged)
+                return .failure(SkipReason.typeChanged)
             }
             if st.fileID != planned.fileID {
-                return .failure(.identityChanged)
+                return .failure(SkipReason.identityChanged)
             }
         }
         let resolved = planned.url.resolvingSymlinksInPath().standardized
         if !isStrictDescendant(resolved, of: planned.cleanupRoot) {
-            return .failure(.escapedCleanupRoot)
+            return .failure(SkipReason.escapedCleanupRoot)
         }
         if hasAppComponent(resolved.path) {
-            return .failure(.appBundleAncestor)
+            return .failure(SkipReason.appBundleAncestor)
         }
         if isDenied(resolved.path) {
-            return .failure(.denyListed)
+            return .failure(SkipReason.denyListed)
         }
         return .success(())
     }

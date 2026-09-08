@@ -30,17 +30,18 @@ actor CleanupExecutor {
                 )
             case .success:
                 do {
-                    var resulting: URL?
+                    var resulting: NSURL?
                     try FileManager.default.trashItem(at: item.url, resultingItemURL: &resulting)
+                    let resultingURL = resulting as URL?
                     if trashLocation == nil {
-                        trashLocation = resulting?.deletingLastPathComponent().path ?? "~/.Trash"
+                        trashLocation = resultingURL?.deletingLastPathComponent().path ?? "~/.Trash"
                     }
                     outcomes.append(
                         .trashed(
                             itemID: item.itemID,
                             path: item.url.path,
                             bytes: item.estimatedBytes,
-                            resultingTrashURL: resulting?.path
+                            resultingTrashURL: resultingURL?.path
                         )
                     )
                 } catch {

@@ -124,9 +124,14 @@ actor ScanEngine {
         ]),
             let total = values.volumeTotalCapacity
         else { return nil }
-        let available = values.volumeAvailableCapacityForImportantUsage
-            ?? values.volumeAvailableCapacity
-        guard let available else { return nil }
-        return (Int64(total), Int64(available))
+        let available: Int64
+        if let important = values.volumeAvailableCapacityForImportantUsage {
+            available = important
+        } else if let fallback = values.volumeAvailableCapacity {
+            available = Int64(fallback)
+        } else {
+            return nil
+        }
+        return (Int64(total), available)
     }
 }
