@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Launch the packaged DiskPrune.app via LaunchServices with the Visual QA harness.
-# The app writes production-UI PNGs and exits. Does not mark Gate 4 PASS.
+# Poll until the catalog writes README.txt. Does not mark Gate 4 PASS.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,7 +19,7 @@ if [[ ! -d "$APP" ]]; then
 fi
 
 python3 - "$PLIST" "$OUT" <<'PY'
-import json, plistlib, sys
+import plistlib, sys
 path, out = sys.argv[1], sys.argv[2]
 with open(path, "rb") as f:
     plist = plistlib.load(f)
@@ -33,16 +33,31 @@ print("injected LSEnvironment ->", out)
 PY
 
 codesign --force --sign - "$APP"
-
 killall DiskPrune >/dev/null 2>&1 || true
+
 echo "Opening $APP via LaunchServices"
-open -W "$APP" || true
+open "$APP"
+
+done_file="$OUT/DONE"
+for i in $(seq 1 90); do
+  if [[ -f "$done_file" || -f "$OUT/README.txt" ]]; then
+    echo "catalog finished after ${i} polls"
+    break
+  fi
+  if [[ -f "$OUT/harness.log" ]]; then
+    tail -n 1 "$OUT/harness.log" || true
+  fi
+  sleep 2
+done
 
 if [[ -f "$OUT/harness.log" ]]; then
   echo "---- harness.log ----"
   cat "$OUT/harness.log"
   echo "--------------------"
 fi
+
+killall DiskPrune >/dev/null 2>&1 || true
+sleep 1
 
 echo "screenshots: $OUT"
 find "$OUT" -name '*.png' | sort || true

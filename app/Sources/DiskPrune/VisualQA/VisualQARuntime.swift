@@ -74,11 +74,13 @@ private enum VisualQACatalog {
                 try run(session: session)
                 writeManifest()
                 VisualQARuntime.trace("catalog complete shots=\(records.count)")
+                try? Data("ok\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
                 NSApp.terminate(nil)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { exit(0) }
             } catch {
                 VisualQARuntime.trace("VISUAL_QA_FAIL \(error)")
                 writeManifest()
+                try? Data("fail\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
                 exit(1)
             }
         }
