@@ -18,7 +18,8 @@ On `macos-latest`, the workflow:
 1. Builds the real `DiskPrune` product (`swift build -c release`) and packages `DiskPrune.app`.
 2. Launches **that binary** with `DISKPRUNE_VISUAL_QA=1`.
 3. The env-gated harness (inert in normal launches) drives the production `RootView` already on screen.
-4. Writes PNGs from `NSWindow.contentView.cacheDisplay` (the app’s own view — no Screen Recording TCC).
+4. Writes PNGs by hosting the production view in a real `NSWindow` and flattening with `displayIgnoringOpacity`. **ImageRenderer is not used** — on macOS it draws `List` / `TabView` / `Form` as a yellow prohibition placeholder, which is not the production UI.
+
 5. Exits. Unit tests only assert `VisualQARuntime.isEnabled == false`.
 
 XCTest cannot host AppKit on this runner (signal 5). The catalog therefore runs inside the real app process.

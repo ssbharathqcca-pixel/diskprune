@@ -39,16 +39,23 @@ echo "Opening $APP via LaunchServices"
 open "$APP"
 
 done_file="$OUT/DONE"
+complete_file="$OUT/COMPLETE"
+saw_checkpoint=0
 for i in $(seq 1 90); do
-  if [[ -f "$done_file" || -f "$OUT/README.txt" ]]; then
+  if [[ -f "$complete_file" ]]; then
     echo "catalog finished after ${i} polls"
     break
+  fi
+  if [[ -f "$done_file" && "$saw_checkpoint" -eq 0 ]]; then
+    saw_checkpoint=1
+    echo "checkpoint (non-autopsy shots ready); waiting for COMPLETE"
   fi
   if [[ -f "$OUT/harness.log" ]]; then
     tail -n 1 "$OUT/harness.log" || true
   fi
   sleep 2
 done
+
 
 if [[ -f "$OUT/harness.log" ]]; then
   echo "---- harness.log ----"

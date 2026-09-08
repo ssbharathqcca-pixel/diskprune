@@ -60,9 +60,11 @@ private enum VisualQACatalog {
     private static var started = false
     private static var records: [[String: String]] = []
     private static var limitations: [String] = [
-        "Shots are taken from DiskPrune.app's own contentView (cacheDisplay), not ScreenCaptureKit.",
         "Gate 4 remains NOT PASS.",
+        "ImageRenderer is not used: on macOS it draws List/TabView/Form as a yellow prohibition placeholder.",
+        "Shots are NSHostingView in a real NSWindow, flattened with displayIgnoringOpacity.",
     ]
+    private static var captureWindow: NSWindow?
 
     static func schedule(session: AppSession) {
         guard !started else { return }
@@ -72,90 +74,103 @@ private enum VisualQACatalog {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             do {
                 try run(session: session)
-                writeManifest()
-                VisualQARuntime.trace("catalog complete shots=\(records.count)")
-                try? Data("ok\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
-                NSApp.terminate(nil)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { exit(0) }
+                finish(ok: true)
             } catch {
                 VisualQARuntime.trace("VISUAL_QA_FAIL \(error)")
-                writeManifest()
-                try? Data("fail\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
-                exit(1)
+                limitations.append("catalog error: \(error)")
+                finish(ok: false)
             }
         }
     }
 
+    private static func finish(ok: Bool) {
+        writeManifest()
+        try? Data((ok ? "ok\n" : "fail\n").utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
+        try? Data("complete\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("COMPLETE"))
+        VisualQARuntime.trace("catalog complete shots=\(records.count) ok=\(ok)")
+        captureWindow?.orderOut(nil)
+        captureWindow?.close()
+        captureWindow = nil
+        NSApp.terminate(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { exit(ok ? 0 : 1) }
+    }
+
     private static func run(session: AppSession) throws {
         try FileManager.default.createDirectory(at: VisualQARuntime.outputRoot, withIntermediateDirectories: true)
-        for _ in 0..<40 {
-            if NSApp.windows.contains(where: { $0.contentView != nil }) { break }
-            spin(0.1)
-        }
-        guard NSApp.windows.first?.contentView != nil else { throw CaptureError.noWindow }
-        VisualQARuntime.trace("window ready count=\(NSApp.windows.count)")
-
-        let knowledge = session.knowledge
+        _ = session
+        let knowledge = try StorageKnowledge.load()
         let wide = CGSize(width: 1100, height: 720)
         let narrow = CGSize(width: 880, height: 560)
+
         let fixture = AppSession(knowledge: knowledge)
         ingest(fixture, partial: false)
         let empty = AppSession(knowledge: knowledge)
         ingestEmpty(empty)
+        let partial = AppSession(knowledge: knowledge)
+        ingest(partial, partial: true)
 
         for dark in [false, true] {
-            applyAppearance(dark)
             for size in [wide, narrow] {
-                session.phase = .idle
-                session.coverage = nil
-                session.items = []
-                session.destination = .overview
-                session.inspectorOpen = false
-                session.showDryRun = false
-                session.showReceipt = false
-                try captureWindow("01-first-launch", dark: dark, size: size, fixture: false)
+                let idle = AppSession(knowledge: knowledge)
+                try captureHosted(RootView(session: idle), screen: "01-first-launch", dark: dark, size: size, fixture: false)
 
-                session.phase = .scanning
-                session.completedProbes = ["Xcode", "Docker"]
-                session.activeProbe = "Package managers"
-                session.probeBytes = ["Xcode": 38_400_000_000, "Docker": 8_100_000_000]
-                try captureWindow("02-scan-progress", dark: dark, size: size, fixture: true)
-                session.phase = .idle
-                session.activeProbe = nil
+                let scanning = AppSession(knowledge: knowledge)
+                scanning.phase = .scanning
+                scanning.completedProbes = ["Xcode", "Docker"]
+                scanning.activeProbe = "Package managers"
+                scanning.probeBytes = ["Xcode": 38_400_000_000, "Docker": 8_100_000_000]
+                try captureHosted(RootView(session: scanning), screen: "02-scan-progress", dark: dark, size: size, fixture: true)
+
+                fixture.destination = .category(.developer)
+                fixture.inspectorOpen = false
+                try captureHosted(RootView(session: fixture), screen: "04-category-detail", dark: dark, size: size, fixture: true)
+
+                fixture.destination = .cleanup
+                try captureHosted(RootView(session: fixture), screen: "05-cleanup-candidates", dark: dark, size: size, fixture: true)
 
                 if let item = fixture.items.first(where: { $0.safety == .safe }) {
-                    try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "06-item-inspector", dark: dark, size: size, fixture: true)
+                    fixture.openInspector(item)
+                    try captureHosted(RootView(session: fixture), screen: "06-item-inspector", dark: dark, size: size, fixture: true)
+                    fixture.inspectorOpen = false
                 }
-                try captureRendered(SnapshotView(summary: SnapshotSummary(count: 0, dates: [], readFailed: false)), screen: "07-snapshots", dark: dark, size: size, fixture: true)
+
+                fixture.destination = .snapshots
+                try captureHosted(RootView(session: fixture), screen: "07-snapshots", dark: dark, size: size, fixture: true)
+
+                empty.destination = .cleanup
+                try captureHosted(RootView(session: empty), screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true)
+
                 if let item = fixture.items.first(where: { $0.safety == .protected }) {
-                    try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "10-inspector-protected", dark: dark, size: size, fixture: true)
+                    fixture.destination = .cleanup
+                    fixture.openInspector(item)
+                    try captureHosted(RootView(session: fixture), screen: "10-inspector-protected", dark: dark, size: size, fixture: true)
+                    fixture.inspectorOpen = false
                 }
                 if let item = fixture.items.first(where: { $0.safety == .advanced }) {
-                    try captureRendered(ItemDetailView(item: item, knowledge: knowledge), screen: "11-inspector-advanced", dark: dark, size: size, fixture: true)
+                    fixture.destination = .cleanup
+                    fixture.openInspector(item)
+                    try captureHosted(RootView(session: fixture), screen: "11-inspector-advanced", dark: dark, size: size, fixture: true)
+                    fixture.inspectorOpen = false
                 }
             }
 
-            try captureRendered(DryRunSheet(session: fixture), screen: "12-dry-run", dark: dark, size: CGSize(width: 520, height: 400), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
-            try captureRendered(ReceiptView(receipt: successReceipt(knowledge)), screen: "13-receipt", dark: dark, size: CGSize(width: 560, height: 480), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
-            try captureRendered(ReceiptView(receipt: failureReceipt(knowledge)), screen: "14-cleanup-failure", dark: dark, size: CGSize(width: 560, height: 520), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
-            try captureRendered(SettingsRootView(knowledge: knowledge), screen: "15-settings", dark: dark, size: CGSize(width: 520, height: 360), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureHosted(DryRunSheet(session: fixture), screen: "12-dry-run", dark: dark, size: CGSize(width: 520, height: 400), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureHosted(ReceiptView(receipt: successReceipt(knowledge)), screen: "13-receipt", dark: dark, size: CGSize(width: 560, height: 480), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureHosted(ReceiptView(receipt: failureReceipt(knowledge)), screen: "14-cleanup-failure", dark: dark, size: CGSize(width: 560, height: 520), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
+            try captureHosted(SettingsRootView(knowledge: knowledge), screen: "15-settings", dark: dark, size: CGSize(width: 520, height: 360), fixture: true, folder: "sheets/\(dark ? "dark" : "light")")
         }
 
-        limitations.append("03-overview-autopsy and 09-overview-partial NOT captured: StorageAutopsyView hangs cacheDisplay and ImageRenderer on the GitHub-hosted runner.")
         writeManifest()
-        try? Data("partial-before-lists\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
-        VisualQARuntime.trace("checkpoint before List views")
+        try? Data("checkpoint\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
+        VisualQARuntime.trace("checkpoint before autopsy")
 
-        for dark in [false, true] {
-            applyAppearance(dark)
-            try captureRendered(SnapshotView(summary: fixture.snapshots), screen: "07b-snapshots-list", dark: dark, size: wide, fixture: true)
-            for size in [wide, narrow] {
-                try captureRendered(ResultsView(session: fixture, filter: .bucket(.developer)), screen: "04-category-detail", dark: dark, size: size, fixture: true)
-                try captureRendered(ResultsView(session: fixture, filter: .cleanup), screen: "05-cleanup-candidates", dark: dark, size: size, fixture: true)
-                try captureRendered(ResultsView(session: empty, filter: .cleanup), screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true)
-            }
-        }
-
+        fixture.destination = .overview
+        try captureHosted(RootView(session: fixture), screen: "03-overview-autopsy", dark: false, size: wide, fixture: true)
+        try captureHosted(RootView(session: fixture), screen: "03-overview-autopsy", dark: true, size: wide, fixture: true)
+        try captureHosted(StorageAutopsyView(session: fixture), screen: "03b-autopsy-detail", dark: false, size: wide, fixture: true)
+        partial.destination = .overview
+        try captureHosted(RootView(session: partial), screen: "09-overview-partial", dark: false, size: wide, fixture: true)
+        try captureHosted(RootView(session: partial), screen: "09-overview-partial", dark: true, size: wide, fixture: true)
     }
 
     private static func ingest(_ session: AppSession, partial: Bool) {
@@ -178,34 +193,7 @@ private enum VisualQACatalog {
         )
     }
 
-    private static func captureWindow(
-        _ screen: String,
-        dark: Bool,
-        size: CGSize,
-        fixture: Bool,
-        folder: String? = nil
-    ) throws {
-        applyAppearance(dark)
-        guard let window = NSApp.windows.first else {
-            throw CaptureError.noWindow
-        }
-        window.setContentSize(size)
-        window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        window.displayIfNeeded()
-        spin(0.3)
-        guard let view = window.contentView else { throw CaptureError.noWindow }
-        view.layoutSubtreeIfNeeded()
-        view.displayIfNeeded()
-        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
-            throw CaptureError.blank(screen)
-        }
-        view.cacheDisplay(in: view.bounds, to: rep)
-        let dir = folder ?? "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
-        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "DiskPrune.app-contentView")
-        VisualQARuntime.trace("captured \(screen) dark=\(dark) \(Int(size.width))x\(Int(size.height))")
-    }
-
-    private static func captureRendered<V: View>(
+    private static func captureHosted<V: View>(
         _ view: V,
         screen: String,
         dark: Bool,
@@ -213,24 +201,123 @@ private enum VisualQACatalog {
         fixture: Bool,
         folder: String? = nil
     ) throws {
-        VisualQARuntime.trace("render \(screen) begin")
+        VisualQARuntime.trace("render \(screen) begin dark=\(dark) \(Int(size.width))x\(Int(size.height))")
         applyAppearance(dark)
+        let appearance = NSAppearance(named: dark ? .darkAqua : .aqua) ?? NSAppearance(named: .aqua)!
         let scheme: ColorScheme = dark ? .dark : .light
         let wrapped = view
             .frame(width: size.width, height: size.height)
+            .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, scheme)
             .preferredColorScheme(scheme)
             .transaction { $0.animation = nil }
-        let renderer = ImageRenderer(content: wrapped)
-        renderer.proposedSize = ProposedViewSize(width: size.width, height: size.height)
-        renderer.scale = 2
-        guard let nsImage = renderer.nsImage,
-              let tiff = nsImage.tiffRepresentation,
-              let rep = NSBitmapImageRep(data: tiff)
-        else { throw CaptureError.blank(screen) }
+
+        let hosting = NSHostingView(rootView: wrapped)
+        hosting.appearance = appearance
+        hosting.frame = NSRect(origin: .zero, size: size)
+
+        let window = reusableWindow(size: size, appearance: appearance)
+        window.contentView = hosting
+        window.setContentSize(size)
+        window.orderFrontRegardless()
+        hosting.layoutSubtreeIfNeeded()
+        window.layoutIfNeeded()
+        window.displayIfNeeded()
+        spin(0.5)
+
+        let target = window.contentView ?? hosting
+        let rep = try flatten(target)
+        try rejectIfInvalid(rep, screen: screen)
         let dir = folder ?? "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
-        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "production-view-ImageRenderer")
+        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "NSHostingView-window")
         VisualQARuntime.trace("captured \(screen) dark=\(dark) \(Int(size.width))x\(Int(size.height))")
+    }
+
+    private static func reusableWindow(size: CGSize, appearance: NSAppearance) -> NSWindow {
+        if let window = captureWindow {
+            window.appearance = appearance
+            window.backgroundColor = .windowBackgroundColor
+            window.setContentSize(size)
+            return window
+        }
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "DiskPrune"
+        window.appearance = appearance
+        window.backgroundColor = .windowBackgroundColor
+        window.isOpaque = true
+        window.isReleasedWhenClosed = false
+        window.setFrameOrigin(NSPoint(x: 60, y: 60))
+        captureWindow = window
+        return window
+    }
+
+    private static func flatten(_ view: NSView) throws -> NSBitmapImageRep {
+        let bounds = view.bounds
+        guard bounds.width > 8, bounds.height > 8 else { throw CaptureError.blank("zero-bounds") }
+        view.layoutSubtreeIfNeeded()
+        view.displayIfNeeded()
+        for sub in view.subviews { sub.displayIfNeeded() }
+
+        let scale = max(view.window?.backingScaleFactor ?? 2, 1)
+        let pw = max(Int((bounds.width * scale).rounded()), 1)
+        let ph = max(Int((bounds.height * scale).rounded()), 1)
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pw,
+            pixelsHigh: ph,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else { throw CaptureError.png }
+        rep.size = bounds.size
+
+        guard let graphics = NSGraphicsContext(bitmapImageRep: rep) else { throw CaptureError.png }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = graphics
+        NSColor.windowBackgroundColor.setFill()
+        NSBezierPath.fill(NSRect(origin: .zero, size: bounds.size))
+        view.displayIgnoringOpacity(bounds, in: graphics)
+        NSGraphicsContext.restoreGraphicsState()
+        return rep
+    }
+
+    private static func rejectIfInvalid(_ rep: NSBitmapImageRep, screen: String) throws {
+        guard let data = rep.bitmapData else { throw CaptureError.blank(screen) }
+        let width = rep.pixelsWide
+        let height = rep.pixelsHigh
+        let bpp = max(rep.bitsPerPixel / 8, 1)
+        let bytesPerRow = rep.bytesPerRow
+        var yellow = 0
+        var opaque = 0
+        var samples = 0
+        for y in Swift.stride(from: 0, to: height, by: 12) {
+            for x in Swift.stride(from: 0, to: width, by: 12) {
+                samples += 1
+                let pixel = data + y * bytesPerRow + x * bpp
+                let r = Int(pixel[0])
+                let g = Int(pixel[1])
+                let b = bpp > 2 ? Int(pixel[2]) : r
+                let a = bpp >= 4 ? Int(pixel[3]) : 255
+                if a > 24 { opaque += 1 }
+                if r > 200 && g > 170 && b < 90 { yellow += 1 }
+            }
+        }
+        if samples == 0 { throw CaptureError.blank(screen) }
+        if yellow * 100 / samples > 12 {
+            throw CaptureError.placeholder(screen)
+        }
+        if opaque * 100 / samples < 12 {
+            throw CaptureError.blank(screen)
+        }
     }
 
     private static func write(
@@ -261,7 +348,7 @@ private enum VisualQACatalog {
     private static func writeManifest() {
         let payload: [String: Any] = [
             "gate4": "NOT PASS",
-            "note": "Supplemental screenshots from the packaged DiskPrune.app on macos-latest. Human review still required.",
+            "note": "Supplemental screenshots from production views hosted in a real NSWindow. Human review still required. ImageRenderer is not used.",
             "shots": records,
             "limitations": limitations,
         ]
@@ -271,6 +358,10 @@ private enum VisualQACatalog {
         var index = "DiskPrune Visual QA screenshots\nGate 4: NOT PASS (human review required)\n\n"
         for record in records {
             index += "- \(record["file"] ?? "")  [\(record["theme"] ?? "") \(record["size"] ?? "")] source=\(record["source"] ?? "") fixture=\(record["fixture"] ?? "")\n"
+        }
+        if !limitations.isEmpty {
+            index += "\nLimitations:\n"
+            for line in limitations { index += "- \(line)\n" }
         }
         try? index.write(to: VisualQARuntime.outputRoot.appendingPathComponent("README.txt"), atomically: true, encoding: .utf8)
     }
@@ -297,8 +388,6 @@ private enum VisualQACatalog {
     }
 
     private static func coverage(partial: Bool, empty: Bool) -> StorageCoverage {
-        // examined == used so the capacity bar has no Canvas hatch in CI.
-        // HatchSegment + cacheDisplay hung the runner after scan-progress.
         StorageCoverage(
             volumeTotalBytes: 100_000_000_000,
             volumeAvailableBytes: 14_000_000_000,
@@ -410,10 +499,14 @@ private enum VisualQACatalog {
 
     enum CaptureError: Error, CustomStringConvertible {
         case blank(String)
+        case placeholder(String)
+        case png
         case noWindow
         var description: String {
             switch self {
             case .blank(let name): return "blank screenshot: \(name)"
+            case .placeholder(let name): return "yellow ImageRenderer placeholder: \(name)"
+            case .png: return "could not encode PNG"
             case .noWindow: return "DiskPrune window missing"
             }
         }
