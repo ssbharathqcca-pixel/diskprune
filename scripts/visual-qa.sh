@@ -47,8 +47,9 @@ open "$APP"
       break
     fi
     if [[ -f "$OUT/CAPTURE_REQUEST" && -f "$OUT/WINDOW_ID" ]]; then
-      dest="$(tr -d '\n' < "$OUT/CAPTURE_REQUEST")"
-      wid="$(tr -d '\n' < "$OUT/WINDOW_ID")"
+      dest="$(sed -n '1p' "$OUT/CAPTURE_REQUEST" | tr -d '\r')"
+      token="$(sed -n '2p' "$OUT/CAPTURE_REQUEST" | tr -d '\r')"
+      wid="$(tr -d '\n\r' < "$OUT/WINDOW_ID")"
       if [[ -n "$dest" && -n "$wid" ]]; then
         mkdir -p "$OUT/$(dirname "$dest")"
         ws="${dest%.png}.ws.png"
@@ -56,11 +57,10 @@ open "$APP"
           echo "screencapture $wid -> $ws"
         else
           echo "screencapture failed for $wid"
-          rm -f "$OUT/$ws"
         fi
       fi
       rm -f "$OUT/CAPTURE_REQUEST"
-      date > "$OUT/CAPTURE_DONE"
+      printf '%s\n' "${token:-done}" > "$OUT/CAPTURE_DONE"
     fi
     sleep 0.15
   done

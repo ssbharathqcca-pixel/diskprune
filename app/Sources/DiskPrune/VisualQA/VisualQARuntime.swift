@@ -536,19 +536,22 @@ private enum VisualQACatalog {
 
     /// Ask visual-qa.sh to run `/usr/sbin/screencapture -l` on the live window.
     /// The shell is outside the Swift Process guardrail. Returns nil on timeout/TCC.
+    /// Does not call FileManager.removeItem — temp handshake files are overwritten.
     private static func requestShellCapture(relative: String) -> NSBitmapImageRep? {
         let root = VisualQARuntime.outputRoot
         let request = root.appendingPathComponent("CAPTURE_REQUEST")
         let done = root.appendingPathComponent("CAPTURE_DONE")
         let png = root.appendingPathComponent(relative).deletingPathExtension().appendingPathExtension("ws.png")
-        try? FileManager.default.removeItem(at: done)
-        try? FileManager.default.removeItem(at: png)
-        try? relative.write(to: request, atomically: true, encoding: .utf8)
+        let token = UUID().uuidString
+        let body = relative + "\n" + token + "\n"
+        guard (try? body.write(to: request, atomically: true, encoding: .utf8)) != nil else { return nil }
         for _ in 0..<24 {
             spin(0.15)
-            if FileManager.default.fileExists(atPath: done.path) { break }
+            if let finished = try? String(contentsOf: done, encoding: .utf8),
+               finished.trimmingCharacters(in: .whitespacesAndNewlines) == token {
+                break
+            }
         }
-        try? FileManager.default.removeItem(at: request)
         guard FileManager.default.fileExists(atPath: png.path),
               let data = try? Data(contentsOf: png),
               let rep = NSBitmapImageRep(data: data)

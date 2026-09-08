@@ -1,4 +1,4 @@
-Last verified commit: `8696e1d8` (CI 44/44, guardrails, schema, drift, macOS build GREEN. Visual QA workflow GREEN with 26 production PNGs; List/autopsy screens still NOT TESTED in CI).
+Last verified commit: `e2fdb04d` (Swift build/tests/schema/drift GREEN; guardrails FAILED on Visual QA `removeItem` handshake — fix in flight). Gate 4 remains NOT PASS.
 
 An item is `[x]` only after its acceptance evidence exists.
 
