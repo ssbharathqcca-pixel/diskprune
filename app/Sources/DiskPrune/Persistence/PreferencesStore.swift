@@ -12,4 +12,14 @@ enum PreferencesStore {
         guard value > 0 else { return nil }
         return Date(timeIntervalSince1970: value)
     }
+
+    static var scanOnLaunch: Bool {
+        get { suite.bool(forKey: "scanOnLaunch") }
+        set { suite.set(newValue, forKey: "scanOnLaunch") }
+    }
+
+    static func resetWarnings() {
+        suite.removeObject(forKey: "warningsResetAt")
+        suite.set(Date().timeIntervalSince1970, forKey: "warningsResetAt")
+    }
 }

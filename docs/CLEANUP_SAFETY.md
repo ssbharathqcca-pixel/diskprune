@@ -23,4 +23,5 @@ Moving to Trash does **not** immediately increase available capacity on the same
 
 ## Current code vs target
 
-Phase 0 removed snapshot deletion from `ScannerActor`. The legacy `trash(urls:)` path still exists and is **not** the Gate 1 design. It will be deleted only after `CleanupPlan`, `PlannedItem`, `PathValidator`, and `CleanupExecutor` tests are green.
+The new UI calls only `CleanupExecutor.execute(_ plan: CleanupPlan)`. Legacy `ScannerActor.trash(urls:)` still exists on disk for Rule 18 and is not reachable from `App.swift` / `UI/`.
+

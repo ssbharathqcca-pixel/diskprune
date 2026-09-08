@@ -67,3 +67,27 @@ Append-only. Record decisions actually made during implementation.
 - Rationale: GATE 1 and the execution directive require exactly one parameter of type `CleanupPlan`. PART 5.4's extra parameters are infrastructure, not plan data.
 - Rejected: `execute(plan:verifier:progress:)` as the public signature.
 - Consequences: Tests set `executor.progress` (or observe the receipt) rather than passing a closure into `execute`.
+
+## DEC-009 — New UI does not consult LicenseManager
+
+- Date: 2026-09-08
+- Status: accepted
+- Decision: Phase 3 UI never reads `LicenseManager.isActivated`. Scan, explain, and cleanup planning stay available. The Licence settings tab is a non-activating shell. Real tokens are Phase 5.
+- Rationale: T-OFF-07 / Builder Rule 8. The existing manager treats Keychain presence as licensed (B-11).
+- Rejected: Wiring the placeholder license sheet to the new cleanup path.
+
+## DEC-010 — Receipt UI has three accounting lines
+
+- Date: 2026-09-08
+- Status: accepted (design review correction)
+- Decision: Receipt displays Estimated recoverable, Moved to Trash, Storage immediately available. `volumeAvailableBefore` / `volumeAvailableAfter` are not UI rows.
+- Rationale: Final design review. The Design Guide's leftover "four-line block" wording is stale.
+- Rejected: A fourth accounting row.
+
+## DEC-011 — Snapshots screen does not display a deletion command
+
+- Date: 2026-09-08
+- Status: accepted
+- Decision: The Snapshots pane states that DiskPrune does not delete snapshots and links Apple's local-snapshot documentation. It does not print a snapshot-deletion command.
+- Rationale: T-SNAP-03 / Builder Rule 6 forbid that API in production source. Safety architecture wins over Design Guide 13.9's Terminal snippet.
+- Rejected: Showing the deletion command as user education.

@@ -6,11 +6,12 @@ final class TerminologyTests: XCTestCase {
         let ui = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
+            .deletingLastPathComponent()
             .appendingPathComponent("Sources/DiskPrune/UI")
         let files = ["ReceiptView.swift", "CleanupPlanView.swift"]
         for name in files {
             let url = ui.appendingPathComponent(name)
-            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            XCTAssertTrue(FileManager.default.fileExists(atPath: url.path), "missing \(name)")
             let text = try String(contentsOf: url, encoding: .utf8)
             for banned in ["freed", "reclaimed"] {
                 XCTAssertFalse(
@@ -19,5 +20,11 @@ final class TerminologyTests: XCTestCase {
                 )
             }
         }
+        let receipt = try String(contentsOf: ui.appendingPathComponent("ReceiptView.swift"), encoding: .utf8)
+        XCTAssertTrue(receipt.contains("Estimated recoverable"))
+        XCTAssertTrue(receipt.contains("Moved to Trash"))
+        XCTAssertTrue(receipt.contains("Storage immediately available"))
+        XCTAssertFalse(receipt.contains("volumeAvailableBefore"))
+        XCTAssertFalse(receipt.contains("volumeAvailableAfter"))
     }
 }

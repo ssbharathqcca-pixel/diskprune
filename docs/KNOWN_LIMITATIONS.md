@@ -16,8 +16,8 @@ Honest list. Do not hide these in marketing.
 
 ## Baseline defects still present until later phases
 
-- `ScannerActor.trash(urls:)` still accepts a URL array. This is the B-1/B-7 path. It will be deleted only after `CleanupPlan` / `CleanupExecutor` and their tests are green (Builder Rule 18 / ordering law 1).
-- `LicenseManager.isActivated` still treats any Keychain item as licensed (B-11).
+- `ScannerActor.trash(urls:)` still exists as a quarantined legacy path (Rule 18). The new UI does not call it. It will be deleted after this UI is CI-green.
+- `LicenseManager.isActivated` still treats any Keychain item as licensed (B-11). The new UI does not consult it.
 - Worker webhook still has no Stripe signature verification (B-12). `Math.random` has been removed; the rest of the worker rewrite is Phase 4.
 - `GET /key-lookup` still returns a license key (B-12). It will be removed in the worker rewrite, not papered over.
 - Website success page in `site/` still fabricates keys (B-13). `site/` is deleted only in commit 7.7 after the Astro port is verified.

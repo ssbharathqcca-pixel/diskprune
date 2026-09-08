@@ -96,6 +96,10 @@ final class StorageKnowledge: Sendable {
         }
     }
 
+    func rule(id: String) -> StorageRule? {
+        rules.first { $0.id == id }
+    }
+
     func classify(path: String) -> (SafetyLevel, Category, StorageRule?) {
         if let rule = rule(forPath: path) {
             return (rule.safety, rule.category, rule)
