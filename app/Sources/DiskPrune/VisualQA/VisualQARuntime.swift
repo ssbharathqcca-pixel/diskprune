@@ -16,6 +16,20 @@ enum VisualQARuntime {
         return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("diskprune-visual-qa")
     }
 
+    static func trace(_ message: String) {
+        let line = "\(ISO8601DateFormatter().string(from: Date())) \(message)\n"
+        let log = outputRoot.appendingPathComponent("harness.log")
+        try? FileManager.default.createDirectory(at: outputRoot, withIntermediateDirectories: true)
+        if let handle = try? FileHandle(forWritingTo: log) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(line.utf8))
+        } else {
+            try? Data(line.utf8).write(to: log)
+        }
+        fputs(line, stderr)
+    }
+
     @MainActor
     static func root(knowledge: StorageKnowledge) -> some View {
         VisualQAHost(session: AppSession(knowledge: knowledge))
@@ -54,15 +68,17 @@ private enum VisualQACatalog {
         guard !started else { return }
         started = true
         PreferencesStore.scanOnLaunch = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        VisualQARuntime.trace("catalog scheduled")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             do {
                 try run(session: session)
                 writeManifest()
-                fputs("VISUAL_QA_OUT=\(VisualQARuntime.outputRoot.path)\n", stderr)
+                VisualQARuntime.trace("catalog complete shots=\(records.count)")
                 NSApp.terminate(nil)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { exit(0) }
             } catch {
-                fputs("VISUAL_QA_FAIL \(error)\n", stderr)
+                VisualQARuntime.trace("VISUAL_QA_FAIL \(error)")
+                writeManifest()
                 exit(1)
             }
         }
@@ -70,13 +86,13 @@ private enum VisualQACatalog {
 
     private static func run(session: AppSession) throws {
         try FileManager.default.createDirectory(at: VisualQARuntime.outputRoot, withIntermediateDirectories: true)
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        for _ in 0..<25 {
+        for _ in 0..<40 {
             if NSApp.windows.contains(where: { $0.contentView != nil }) { break }
             spin(0.1)
         }
         guard NSApp.windows.first?.contentView != nil else { throw CaptureError.noWindow }
+        VisualQARuntime.trace("window ready count=\(NSApp.windows.count)")
+
         let knowledge = session.knowledge
         let wide = CGSize(width: 1100, height: 720)
         let narrow = CGSize(width: 880, height: 560)
@@ -213,6 +229,7 @@ private enum VisualQACatalog {
         view.cacheDisplay(in: view.bounds, to: rep)
         let dir = folder ?? "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
         try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "DiskPrune.app-contentView")
+        VisualQARuntime.trace("captured \(screen) dark=\(dark) \(Int(size.width))x\(Int(size.height))")
     }
 
     private static func captureStandalone<V: View>(_ view: V, screen: String, dark: Bool, size: CGSize) throws {

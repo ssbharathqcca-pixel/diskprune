@@ -3,6 +3,10 @@ import SwiftUI
 
 @main
 struct DiskPruneApp: App {
+    init() {
+        VisualQARuntime.trace("DiskPruneApp.init enabled=\(VisualQARuntime.isEnabled)")
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
