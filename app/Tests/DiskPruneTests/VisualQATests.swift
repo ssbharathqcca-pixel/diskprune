@@ -18,7 +18,7 @@ final class VisualQATests: XCTestCase {
         VisualQACapture.bootstrap()
     }
 
-    func testCaptureProductionUICatalog() async throws {
+    func testCaptureProductionUICatalog() throws {
         VisualQACapture.records = []
         VisualQACapture.limitations = []
 
@@ -39,26 +39,11 @@ final class VisualQATests: XCTestCase {
             try captureSheets(dark: dark)
         }
 
-        if let appPath = ProcessInfo.processInfo.environment["DISKPRUNE_APP"], !appPath.isEmpty {
-            let url = URL(fileURLWithPath: appPath)
-            if FileManager.default.fileExists(atPath: url.path) {
-                do {
-                    try await VisualQACapture.captureRealApp(at: url)
-                } catch {
-                    VisualQACapture.limitations.append("Packaged app launch: \(error)")
-                }
-            } else {
-                VisualQACapture.limitations.append("DISKPRUNE_APP does not exist at \(appPath)")
-            }
-        } else {
-            VisualQACapture.limitations.append("DISKPRUNE_APP not set — packaged first-launch screenshot skipped")
-        }
-
         try VisualQACapture.writeManifest()
         XCTAssertGreaterThanOrEqual(VisualQACapture.records.count, 20, "too few screenshots written")
-        let out = VisualQACapture.outputRoot.path
-        print("VISUAL_QA_OUT=\(out)")
+        print("VISUAL_QA_OUT=\(VisualQACapture.outputRoot.path)")
     }
+
 
     private func captureFirstLaunch(dark: Bool, size: CGSize) throws {
         let session = try VisualQAFixtures.session()

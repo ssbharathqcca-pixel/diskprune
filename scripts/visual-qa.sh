@@ -31,3 +31,25 @@ if [[ "$count" -lt 20 ]]; then
   echo "expected at least 20 PNGs" >&2
   exit 1
 fi
+
+# Launch the packaged production .app and try a first-launch PNG.
+# screencapture / Screen Recording often fail on GitHub-hosted runners; that is
+# recorded as a limitation, not a reason to discard the hosted production views.
+echo "Launching packaged DiskPrune.app…"
+defaults write com.diskprune.app scanOnLaunch -bool false || true
+killall DiskPrune >/dev/null 2>&1 || true
+if open "$APP"; then
+  sleep 5
+  mkdir -p "$OUT/real-app"
+  if screencapture -x "$OUT/real-app/first-launch.png" 2>/tmp/screencapture.err; then
+    echo "packaged-app screenshot: $OUT/real-app/first-launch.png"
+  else
+    echo "screencapture failed (likely TCC). See docs/VISUAL-QA-CI.md."
+    rm -f "$OUT/real-app/first-launch.png"
+    echo "- Packaged DiskPrune.app launched; screencapture blocked on this runner." >> "$OUT/README.txt"
+  fi
+  killall DiskPrune >/dev/null 2>&1 || true
+else
+  echo "- Could not open packaged DiskPrune.app" >> "$OUT/README.txt"
+fi
+

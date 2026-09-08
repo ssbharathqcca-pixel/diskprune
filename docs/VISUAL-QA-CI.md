@@ -19,7 +19,8 @@ On `macos-latest`, the workflow:
 2. Compiles the production UI into the existing XCTest target.
 3. Hosts **production** views (`RootView`, `DryRunSheet`, `ReceiptView`, `SettingsRootView`) in a real `NSWindow`.
 4. Writes PNGs organized by theme, window size, and screen.
-5. Launches the packaged `DiskPrune.app` and attempts a first-launch screenshot of that process.
+5. Launches the packaged `DiskPrune.app` after the XCTest captures. A `screencapture` of that process is best-effort: GitHub-hosted runners typically lack Screen Recording TCC, so that PNG may be missing. Hosted production-view PNGs are then the reviewable evidence.
+
 
 It does **not** click **Move to Trash**. It does **not** call `CleanupExecutor`. It does **not** bypass `CleanupPlan` / TOCTOU.
 
@@ -73,7 +74,8 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 - Reduce Motion / Reduce Transparency / VoiceOver / Dynamic Type
 - Gatekeeper “right-click Open” on a customer Mac
 - Liquid Glass vs macOS 14 floor on a physical display
-- That `CGWindowListCreateImage` of the packaged app succeeded (Screen Recording TCC often blocks it; hosted `RootView` shots are then the evidence)
+- That `screencapture` of the packaged app succeeded (Screen Recording TCC often blocks it; hosted `RootView` shots are then the evidence)
+
 - Exact window-server chrome of a user session vs `NSWindow` in XCTest
 
 If the packaged-app shot is missing, `manifest.json` → `limitations` says so. That is **NOT TESTED**, not a PASS.

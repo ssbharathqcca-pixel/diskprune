@@ -1,5 +1,4 @@
 import AppKit
-import CoreGraphics
 import Foundation
 import SwiftUI
 @testable import DiskPrune
@@ -13,6 +12,9 @@ struct VisualQARecord: Codable {
     let fixture: Bool
 }
 
+/// Renders production SwiftUI views off-screen.
+/// Does not use CGWindowListCreateImage / ScreenCaptureKit — those abort on
+/// GitHub-hosted runners without Screen Recording TCC (signal 5).
 @MainActor
 enum VisualQACapture {
     static var records: [VisualQARecord] = []
@@ -28,23 +30,15 @@ enum VisualQACapture {
 
     static func bootstrap() {
         let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
+        app.setActivationPolicy(.accessory)
         app.appearance = NSAppearance(named: .aqua)
         PreferencesStore.scanOnLaunch = false
         try? FileManager.default.createDirectory(at: outputRoot, withIntermediateDirectories: true)
+        limitations.append("Window chrome is NSHostingView content, not CGWindowList of a user session. Packaged-app PNG is attempted by scripts/visual-qa.sh.")
     }
 
     static func appearance(dark: Bool) -> NSAppearance {
-        NSAppearance(named: dark ? .darkAqua : .aqua)!
-    }
-
-    static func captureRoot(
-        _ session: AppSession,
-        screen: String,
-        dark: Bool,
-        size: CGSize
-    ) throws {
-        try captureRoot(session, screen: screen, dark: dark, size: size, fixture: screen != "01-first-launch")
+        NSAppearance(named: dark ? .darkAqua : .aqua) ?? NSAppearance(named: .aqua)!
     }
 
     static func captureRoot(
@@ -106,36 +100,13 @@ enum VisualQACapture {
         let appearance = appearance(dark: dark)
         NSApp.appearance = appearance
 
-        let hosting = NSHostingView(rootView: view)
-        hosting.appearance = appearance
-        hosting.frame = NSRect(origin: .zero, size: size)
-
-        let window = NSWindow(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "DiskPrune"
-        window.appearance = appearance
-        window.contentView = hosting
-        window.setContentSize(size)
-        window.isReleasedWhenClosed = false
-        window.setFrameOrigin(NSPoint(x: 40, y: 40))
-        window.orderFrontRegardless()
-        window.makeKeyAndOrderFront(nil)
-        hosting.layoutSubtreeIfNeeded()
-        hosting.displayIfNeeded()
-        window.displayIfNeeded()
-        spin(0.45)
-
         let relative = "\(folder)/\(screen).png"
         let url = outputRoot.appendingPathComponent(relative)
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-        if let image = windowImage(window), !isBlank(image) {
+        if let image = imageRenderer(view, size: size, appearance: appearance) {
             try writePNG(image, to: url)
-        } else if let image = viewImage(hosting) {
+        } else if let image = hostingBitmap(view, size: size, appearance: appearance) {
             try writePNG(image, to: url)
         } else {
             throw CaptureError.blank(relative)
@@ -149,45 +120,7 @@ enum VisualQACapture {
             source: source,
             fixture: fixture
         ))
-        window.orderOut(nil)
-        window.close()
     }
-
-    static func captureRealApp(at appURL: URL) async throws {
-        for running in NSRunningApplication.runningApplications(withBundleIdentifier: "com.diskprune.app") {
-            running.terminate()
-        }
-        spin(0.4)
-
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = true
-        config.createsNewApplicationInstance = true
-        let launched = try await NSWorkspace.shared.openApplication(at: appURL, configuration: config)
-        spin(3.0)
-
-        let pid = launched.processIdentifier
-        let relative = "real-app/first-launch.png"
-        let url = outputRoot.appendingPathComponent(relative)
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-
-        guard let image = imageForPID(pid) else {
-            launched.terminate()
-            limitations.append("Real DiskPrune.app launched (pid \(pid)) but CGWindowListCreateImage returned nil — likely Screen Recording TCC on the runner. Hosted RootView shots remain the reviewable evidence.")
-            return
-        }
-        try writePNG(image, to: url)
-        records.append(VisualQARecord(
-            file: relative,
-            screen: "01-first-launch",
-            theme: "system",
-            size: "native",
-            source: "packaged-DiskPrune.app",
-            fixture: false
-        ))
-        launched.terminate()
-        spin(0.4)
-    }
-
 
     static func writeManifest() throws {
         struct Manifest: Codable {
@@ -198,14 +131,13 @@ enum VisualQACapture {
         }
         let body = Manifest(
             gate4: "NOT PASS",
-            note: "Supplemental screenshot evidence from production SwiftUI views hosted in a real AppKit window on macos-latest. Human visual review is still required. Gate 4 is not passed by this workflow.",
+            note: "Supplemental screenshot evidence from production SwiftUI views on macos-latest. Human visual review is still required. Gate 4 is not passed by this workflow.",
             shots: records,
             limitations: limitations
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(body)
-        try data.write(to: outputRoot.appendingPathComponent("manifest.json"))
+        try encoder.encode(body).write(to: outputRoot.appendingPathComponent("manifest.json"))
 
         var index = """
         DiskPrune Visual QA screenshots
@@ -224,46 +156,32 @@ enum VisualQACapture {
         try index.write(to: outputRoot.appendingPathComponent("README.txt"), atomically: true, encoding: .utf8)
     }
 
-    private static func windowImage(_ window: NSWindow) -> NSBitmapImageRep? {
-        let windowID = CGWindowID(window.windowNumber)
-        guard windowID != 0,
-              let cg = CGWindowListCreateImage(
-                CGRect.null,
-                .optionIncludingWindow,
-                windowID,
-                [.boundsIgnoreFraming, .bestResolution]
-              )
+    private static func imageRenderer<V: View>(_ view: V, size: CGSize, appearance: NSAppearance) -> NSBitmapImageRep? {
+        let renderer = ImageRenderer(content: view)
+        renderer.proposedSize = ProposedViewSize(width: size.width, height: size.height)
+        renderer.scale = 2
+        guard let nsImage = renderer.nsImage,
+              let tiff = nsImage.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              !isBlank(rep)
         else { return nil }
-        return NSBitmapImageRep(cgImage: cg)
-    }
-
-    private static func viewImage(_ view: NSView) -> NSBitmapImageRep? {
-        view.layoutSubtreeIfNeeded()
-        view.displayIfNeeded()
-        guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
-        view.cacheDisplay(in: view.bounds, to: rep)
-        if isBlank(rep) { return nil }
+        _ = appearance
         return rep
     }
 
-    private static func imageForPID(_ pid: pid_t) -> NSBitmapImageRep? {
-        guard let info = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] else {
-            return nil
-        }
-        for window in info {
-            let owner = window[kCGWindowOwnerPID as String] as? pid_t
-            let layer = window[kCGWindowLayer as String] as? Int ?? 0
-            guard owner == pid, layer == 0 else { continue }
-            guard let number = window[kCGWindowNumber as String] as? CGWindowID else { continue }
-            guard let cg = CGWindowListCreateImage(
-                CGRect.null,
-                .optionIncludingWindow,
-                number,
-                [.boundsIgnoreFraming, .bestResolution]
-            ) else { continue }
-            return NSBitmapImageRep(cgImage: cg)
-        }
-        return nil
+    private static func hostingBitmap<V: View>(_ view: V, size: CGSize, appearance: NSAppearance) -> NSBitmapImageRep? {
+        let hosting = NSHostingView(rootView: view)
+        hosting.appearance = appearance
+        hosting.frame = NSRect(origin: .zero, size: size)
+        hosting.wantsLayer = true
+        hosting.layer?.contentsScale = 2
+        hosting.layoutSubtreeIfNeeded()
+        hosting.displayIfNeeded()
+        spin(0.2)
+        guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else { return nil }
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        if isBlank(rep) { return nil }
+        return rep
     }
 
     private static func isBlank(_ rep: NSBitmapImageRep) -> Bool {
@@ -278,7 +196,7 @@ enum VisualQACapture {
                 let pixel = data + y * bytesPerRow + x * bpp
                 if bpp >= 4 {
                     if pixel[3] > 8 { opaque += 1 }
-                } else if pixel[0] + pixel[min(1, bpp - 1)] > 8 {
+                } else if pixel[0] > 8 {
                     opaque += 1
                 }
             }
@@ -301,12 +219,10 @@ enum VisualQACapture {
     enum CaptureError: Error, CustomStringConvertible {
         case blank(String)
         case png
-        case launchFailed
         var description: String {
             switch self {
             case .blank(let name): return "blank screenshot: \(name)"
             case .png: return "could not encode PNG"
-            case .launchFailed: return "failed to launch DiskPrune.app"
             }
         }
     }
