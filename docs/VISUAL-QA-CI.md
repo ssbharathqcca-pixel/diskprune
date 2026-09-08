@@ -30,23 +30,25 @@ It does **not** click **Move to Trash**. It does **not** call `CleanupExecutor`.
 
 ## What is rendered from the real app
 
-| Shot | Source | Data |
+| Shot | Captured in CI? | Source |
 | --- | --- | --- |
-| `01-first-launch` | Live `DiskPrune.app` `RootView` | Idle session, runner volume header, `scanOnLaunch` off |
-| `02-scan-progress` | Production `RootView` → `ScanView` | Injected `AppSession.phase = .scanning` (no disk walk) |
-| `03-overview-autopsy` | Production `RootView` → `StorageAutopsyView` | `AppSession.ingestScan` with production `StorageItem` / `StorageCoverage` |
-| `04-category-detail` | Production `ResultsView` | Same session, `destination = .category(.developer)` |
-| `05-cleanup-candidates` | Production `ResultsView` + `CleanupPlanView` footer | Same session, `destination = .cleanup` |
-| `06-item-inspector` | Production `.inspector` + `ItemDetailView` | Safe catalog item |
-| `07-snapshots` | Production `SnapshotView` | `SnapshotSummary` (inspect-only; no delete control) |
-| `08-empty-no-candidates` | Production empty cleanup state | Protected/advanced only; `cleanupCandidateBytes = 0` |
-| `09-overview-partial` | Production autopsy + permission copy | `permissionLimitedPaths` set |
-| `10-inspector-protected` | Production inspector | Documents rule |
-| `11-inspector-advanced` | Production inspector | `docker-raw` rule (sparse callout from logical vs on-disk) |
-| `12-dry-run` | Production `DryRunSheet` | Plan from selected safe items — **not executed** |
-| `13-receipt` | Production `ReceiptView` | Constructed `CleanupReceipt` (three accounting lines) |
-| `14-cleanup-failure` | Production `ReceiptView` | Failed + skipped outcomes — **not executed** |
-| `15-settings` | Production `SettingsRootView` | Licence tab is a shell; no `LicenseManager.isActivated` |
+| `01-first-launch` | yes, live window | Packaged app `contentView` |
+| `02-scan-progress` | yes, live window | Production `ScanView` via live `RootView` |
+| `03-overview-autopsy` | **NO — hangs runner** | StorageAutopsyView / CapacityBar |
+| `04-category-detail` | yes (light; dark 1100) | Production `ResultsView` |
+| `05-cleanup-candidates` | yes (light) | Production `ResultsView` + plan footer |
+| `06-item-inspector` | yes | Production `ItemDetailView` |
+| `07-snapshots` | yes | Production `SnapshotView` empty state |
+| `07b-snapshots-list` | yes | Production `SnapshotView` with dates |
+| `08-empty-no-candidates` | yes (light) | Production empty cleanup |
+| `09-overview-partial` | **NO — hangs runner** | StorageAutopsyView |
+| `10-inspector-protected` | yes | Production inspector, Documents rule |
+| `11-inspector-advanced` | yes | Production inspector, `docker-raw` |
+| `12-dry-run` | yes | Production `DryRunSheet` — not executed |
+| `13-receipt` | yes | Production `ReceiptView` (three lines) |
+| `14-cleanup-failure` | yes | Production `ReceiptView` failed/skipped |
+| `15-settings` | yes | Production `SettingsRootView` |
+
 
 Light and dark: `NSAppearance` + `.preferredColorScheme`.  
 Windows: **1100×720** and **880×560** for `RootView`. Sheets use their native sizes.
@@ -68,6 +70,7 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
+- Overview / Autopsy with data (`StorageAutopsyView` / `CapacityBar` hangs the GitHub-hosted runner)
 - Whether a stranger understands the Overview (comprehension, not pixels)
 - Canvas composition fidelity (Claude artifact login)
 - True device Light/Dark as a logged-in user, vs forced `NSAppearance`
