@@ -1,0 +1,750 @@
+{
+  "schemaVersion": 1,
+  "rulesVersion": "2026.09.1",
+  "rules": [
+    {
+      "id": "xcode-deriveddata",
+      "paths": [
+        "~/Library/Developer/Xcode/DerivedData"
+      ],
+      "envOverride": "DERIVED_DATA_PATH",
+      "displayName": "Xcode DerivedData",
+      "category": "developerBuild",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Xcode",
+      "explanation": "Intermediate build products Xcode writes while compiling each project. They are large, machine-local, and not part of your source tree.",
+      "consequence": "The next build of each affected project will be a full rebuild and take longer. Source code, git history, and archives are not touched.",
+      "howItComesBack": "Open the project in Xcode and build. DerivedData is recreated automatically.",
+      "minMacOS": "14.0",
+      "docsURL": "https://developer.apple.com/documentation/xcode",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "xcode-modulecache",
+      "paths": [
+        "~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex"
+      ],
+      "displayName": "Xcode Module Cache",
+      "category": "developerBuild",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Xcode",
+      "explanation": "Clang's shared module cache used to speed up compilation of imported modules across projects. It is regenerated on the next compile.",
+      "consequence": "The first few builds after removal compile modules from scratch. No project settings or source files are affected.",
+      "howItComesBack": "Xcode recreates ModuleCache.noindex the next time a target imports a module.",
+      "minMacOS": "14.0",
+      "docsURL": "https://clang.llvm.org/docs/Modules.html",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "npm-cacache",
+      "paths": [
+        "~/.npm/_cacache"
+      ],
+      "envOverride": "npm_config_cache",
+      "displayName": "npm package cache",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "npm",
+      "explanation": "Content-addressed cache of tarballs npm has already downloaded. It exists only to avoid re-fetching packages from the registry.",
+      "consequence": "The next npm install re-downloads packages that were only in this cache. package.json and node_modules in your projects are not modified.",
+      "howItComesBack": "Run npm install in a project; npm repopulates _cacache from the registry.",
+      "minMacOS": "14.0",
+      "docsURL": "https://docs.npmjs.com/cli/v10/commands/npm-cache",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "pnpm-store",
+      "paths": [
+        "~/Library/pnpm/store",
+        "~/.pnpm-store"
+      ],
+      "envOverride": "PNPM_HOME",
+      "displayName": "pnpm content store",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "pnpm",
+      "explanation": "pnpm's global content-addressable store. Project node_modules directories hardlink or copy from here rather than duplicating every package.",
+      "consequence": "Projects using pnpm will re-fetch packages on the next install. Existing project lockfiles are not changed.",
+      "howItComesBack": "Run pnpm install; the store is rebuilt from the registry as needed.",
+      "minMacOS": "14.0",
+      "docsURL": "https://pnpm.io/npmrc#store-dir",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "yarn-cache",
+      "paths": [
+        "~/Library/Caches/Yarn",
+        "~/.yarn/berry/cache"
+      ],
+      "displayName": "Yarn package cache",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Yarn",
+      "explanation": "Offline cache of packages Yarn has already fetched. Classic Yarn and Yarn Berry keep this in different locations; both are regenerable.",
+      "consequence": "The next yarn install downloads packages again. Your repository lockfile and source are untouched.",
+      "howItComesBack": "Run yarn install. Yarn restores the cache from the registry.",
+      "minMacOS": "14.0",
+      "docsURL": "https://yarnpkg.com/features/offline-cache",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "cargo-registry-cache",
+      "paths": [
+        "~/.cargo/registry/cache"
+      ],
+      "envOverride": "CARGO_HOME",
+      "displayName": "Cargo registry cache",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Cargo",
+      "explanation": "Compressed crate files Cargo downloaded from crates.io (or another registry). The src/ checkout of those crates lives beside this cache.",
+      "consequence": "The next cargo build that needs a crate will re-download it. Cargo.lock and your crate sources are not modified.",
+      "howItComesBack": "Run cargo build or cargo fetch; the registry cache is filled again.",
+      "minMacOS": "14.0",
+      "docsURL": "https://doc.rust-lang.org/cargo/guide/cargo-home.html",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "gradle-caches",
+      "paths": [
+        "~/.gradle/caches"
+      ],
+      "envOverride": "GRADLE_USER_HOME",
+      "displayName": "Gradle caches",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Gradle",
+      "explanation": "Downloaded dependencies, generated jars, and transform caches Gradle uses so subsequent builds do not hit the network.",
+      "consequence": "The next Gradle build re-downloads and re-transforms dependencies. Project source and gradle.properties are not touched.",
+      "howItComesBack": "Run the Gradle build; caches are restored from configured repositories.",
+      "minMacOS": "14.0",
+      "docsURL": "https://docs.gradle.org/current/userguide/directory_layout.html",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "maven-repository",
+      "paths": [
+        "~/.m2/repository"
+      ],
+      "displayName": "Maven local repository",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Maven",
+      "explanation": "Local copy of artifacts Maven has resolved. It is a cache, not your project's source or the remote repository.",
+      "consequence": "The next mvn invocation re-downloads missing artifacts. pom.xml files are not modified.",
+      "howItComesBack": "Run mvn package or mvn dependency:resolve; artifacts return to ~/.m2/repository.",
+      "minMacOS": "14.0",
+      "docsURL": "https://maven.apache.org/guides/introduction/introduction-to-repositories.html",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "cocoapods-cache",
+      "paths": [
+        "~/Library/Caches/CocoaPods"
+      ],
+      "displayName": "CocoaPods cache",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "CocoaPods",
+      "explanation": "Downloaded pod specs and source archives CocoaPods keeps so pod install does not re-fetch every dependency.",
+      "consequence": "The next pod install re-downloads pods. Your Podfile and Podfile.lock stay in place.",
+      "howItComesBack": "Run pod install; CocoaPods rebuilds this cache from the spec repos.",
+      "minMacOS": "14.0",
+      "docsURL": "https://guides.cocoapods.org/using/using-cocoapods.html",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "spm-cache",
+      "paths": [
+        "~/Library/Caches/org.swift.swiftpm"
+      ],
+      "displayName": "Swift Package Manager cache",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Swift Package Manager",
+      "explanation": "Cloned package checkouts and build artifacts SwiftPM stores outside your project so packages are reused across Xcode projects.",
+      "consequence": "The next Xcode or swift build that needs a package will re-clone it. Package.swift manifests are not changed.",
+      "howItComesBack": "Resolve packages in Xcode or run swift package resolve.",
+      "minMacOS": "14.0",
+      "docsURL": "https://www.swift.org/documentation/package-manager/",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "homebrew-cache",
+      "paths": [
+        "~/Library/Caches/Homebrew"
+      ],
+      "envOverride": "HOMEBREW_CACHE",
+      "displayName": "Homebrew cache",
+      "category": "packageCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "Homebrew",
+      "explanation": "Downloaded bottle archives and source tarballs Homebrew keeps after installs and upgrades. Installed kegs live in the Homebrew prefix, not here.",
+      "consequence": "The next brew install or upgrade re-downloads bottles. Already-installed formulae keep working.",
+      "howItComesBack": "brew install or brew fetch restores downloads. brew cleanup is the Homebrew-native way to prune this cache.",
+      "minMacOS": "14.0",
+      "docsURL": "https://docs.brew.sh/Manpage#cleanup-options-formulacask-",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "user-caches",
+      "paths": [
+        "~/Library/Caches"
+      ],
+      "displayName": "User Library Caches",
+      "category": "applicationCache",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "macOS applications",
+      "explanation": "Per-app caches under ~/Library/Caches. macOS and apps are expected to recreate this data. Individual subfolders are classified separately when a more specific rule matches.",
+      "consequence": "Apps may launch slower once while they rebuild caches. Documents, photos, and application support files are not in this folder.",
+      "howItComesBack": "Launch the app. Caches are recreated on demand.",
+      "minMacOS": "14.0",
+      "docsURL": "https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "user-logs",
+      "paths": [
+        "~/Library/Logs"
+      ],
+      "displayName": "User logs",
+      "category": "log",
+      "safety": "safe",
+      "regenerable": true,
+      "producer": "macOS applications",
+      "explanation": "Diagnostic log files written by apps in your home library. They are useful for debugging and otherwise safe to move to Trash.",
+      "consequence": "You lose historical log output that might have helped diagnose a past crash. Running apps will start new log files.",
+      "howItComesBack": "Apps append new logs as they run. There is no restore of old log text.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "xcode-archives",
+      "paths": [
+        "~/Library/Developer/Xcode/Archives"
+      ],
+      "displayName": "Xcode Archives",
+      "category": "developerBuild",
+      "safety": "review",
+      "regenerable": false,
+      "producer": "Xcode",
+      "explanation": "Archived builds created by Product \u2192 Archive. These are the artifacts you submit to App Store Connect or export as IPAs.",
+      "consequence": "You cannot re-export or re-submit that exact build without archiving again. Source is not deleted, but the archived binary is.",
+      "minMacOS": "14.0",
+      "docsURL": "https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "xcode-devicesupport",
+      "paths": [
+        "~/Library/Developer/Xcode/iOS DeviceSupport"
+      ],
+      "displayName": "Xcode iOS DeviceSupport",
+      "category": "developerBuild",
+      "safety": "review",
+      "regenerable": true,
+      "producer": "Xcode",
+      "explanation": "Symbol files copied from physical devices you have plugged in. Xcode uses them to symbolicate crash logs for that OS version.",
+      "consequence": "Crash symbolication for those device OS versions will fail until the device is connected again. Debugging currently attached devices still works after a resync.",
+      "howItComesBack": "Plug the device in and let Xcode copy DeviceSupport again.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "xcode-simulators",
+      "paths": [
+        "~/Library/Developer/CoreSimulator/Devices"
+      ],
+      "displayName": "Xcode Simulators",
+      "category": "developerBuild",
+      "safety": "review",
+      "regenerable": true,
+      "producer": "Xcode",
+      "explanation": "Simulator device data \u2014 installed apps, keychain, photos, and runtime state for each simulated iPhone or iPad.",
+      "consequence": "Simulator apps and their local data are gone. You will need to reinstall test apps onto new simulator devices.",
+      "howItComesBack": "Xcode \u2192 Window \u2192 Devices and Simulators can recreate devices. xcrun simctl delete unavailable is the recommended way to drop dead runtimes.",
+      "minMacOS": "14.0",
+      "docsURL": "https://developer.apple.com/documentation/xcode/installing-additional-simulator-runtimes",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "cargo-target",
+      "paths": [
+        "~/.cargo/target"
+      ],
+      "displayName": "Cargo target (not scanned in v1)",
+      "category": "developerBuild",
+      "safety": "review",
+      "regenerable": true,
+      "producer": "Cargo",
+      "explanation": "Placeholder rule for cargo target directories. v1 does not scan or offer them for cleanup because an active build tree may live here.",
+      "consequence": "Deleting an in-use target directory can break a running build. DiskPrune therefore never selects this path in v1.",
+      "howItComesBack": "cargo build recreates target/ inside the crate, not necessarily at this path.",
+      "minMacOS": "14.0",
+      "docsURL": "https://doc.rust-lang.org/cargo/guide/build-cache.html",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "system-logs",
+      "paths": [
+        "/Library/Logs"
+      ],
+      "displayName": "System logs",
+      "category": "log",
+      "safety": "review",
+      "regenerable": true,
+      "producer": "macOS",
+      "explanation": "Machine-wide logs outside your home folder. Trash will usually fail here without Full Disk Access and elevated privileges; that failure is reported honestly.",
+      "consequence": "Diagnostic history for system services is lost if removal succeeds. Most users will see a permission failure on this item instead.",
+      "howItComesBack": "macOS continues writing new logs. Old rotated logs are not recreated.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "containers",
+      "paths": [
+        "~/Library/Containers"
+      ],
+      "displayName": "App Containers",
+      "category": "containerData",
+      "safety": "review",
+      "regenerable": false,
+      "producer": "sandboxed macOS applications",
+      "explanation": "Sandbox containers for Mac App Store and sandboxed apps. They can hold documents, caches, and settings the app treats as its home directory.",
+      "consequence": "The app may lose its local documents, login sessions, and settings. Some apps recreate an empty container; some appear to 'forget' the user.",
+      "minMacOS": "14.0",
+      "docsURL": "https://developer.apple.com/documentation/security/app_sandbox",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "application-support",
+      "paths": [
+        "~/Library/Application Support"
+      ],
+      "displayName": "Application Support",
+      "category": "applicationSupport",
+      "safety": "review",
+      "regenerable": false,
+      "producer": "macOS applications",
+      "explanation": "Support files apps store next to \u2014 not inside \u2014 their documents: databases, support resources, and offline data. Not the same as Caches.",
+      "consequence": "Apps may lose offline data, local databases, or license files they stored here. This is why the item is review, not safe.",
+      "minMacOS": "14.0",
+      "docsURL": "https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/MacOSXDirectories/MacOSXDirectories.html",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "docker-raw",
+      "paths": [
+        "~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw",
+        "~/Library/Containers/com.docker.docker/Data/vms/0/Docker.raw",
+        "~/.docker/desktop/vms/0/data/Docker.raw",
+        "~/Library/Containers/com.docker.docker/Data",
+        "~/.colima",
+        "~/.orbstack"
+      ],
+      "displayName": "Docker disk image",
+      "category": "virtualDisk",
+      "safety": "advanced",
+      "regenerable": false,
+      "producer": "Docker Desktop / Colima / OrbStack",
+      "explanation": "The sparse virtual disk that holds images, containers, and volumes. It does not shrink when you delete containers; Docker-native prune commands do.",
+      "consequence": "Deleting this file destroys every image, container, and volume. DiskPrune never offers it as a cleanup target, running or stopped.",
+      "minMacOS": "14.0",
+      "docsURL": "https://docs.docker.com/desktop/uninstall/",
+      "lastReviewed": "2026-09-08",
+      "publish": true
+    },
+    {
+      "id": "apfs-local-snapshots",
+      "paths": [
+        "/private/var/db/com.apple.TimeMachine"
+      ],
+      "displayName": "APFS local snapshots",
+      "category": "snapshot",
+      "safety": "advanced",
+      "regenerable": false,
+      "producer": "Time Machine / macOS",
+      "explanation": "Local Time Machine snapshots macOS keeps for restore. DiskPrune lists them with tmutil; this rule does not match the whole volume and is never a cleanup candidate.",
+      "consequence": "Deleting snapshots yourself with tmutil removes local restore points. DiskPrune does not do this and does not offer a button for it.",
+      "minMacOS": "14.0",
+      "docsURL": "https://support.apple.com/guide/mac-help/keep-previous-versions-of-your-files-on-mac-mh40710/mac",
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-documents",
+      "paths": [
+        "~/Documents"
+      ],
+      "displayName": "Documents",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "The Documents folder is user data. DiskPrune will never offer it for cleanup, even if a nested cache rule exists elsewhere. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-desktop",
+      "paths": [
+        "~/Desktop"
+      ],
+      "displayName": "Desktop",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Desktop items are user data and visible files. They are never cleanup candidates. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-downloads",
+      "paths": [
+        "~/Downloads"
+      ],
+      "displayName": "Downloads",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Downloads holds files you chose to keep. DiskPrune never plans this folder. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-pictures",
+      "paths": [
+        "~/Pictures"
+      ],
+      "displayName": "Pictures",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Photos libraries and pictures live here. This path is unconditionally protected. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-movies",
+      "paths": [
+        "~/Movies"
+      ],
+      "displayName": "Movies",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Movie files are user data. DiskPrune never offers this folder for cleanup. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-music",
+      "paths": [
+        "~/Music"
+      ],
+      "displayName": "Music",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Music libraries are user data. This path cannot appear in a cleanup plan. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-mobile-documents",
+      "paths": [
+        "~/Library/Mobile Documents"
+      ],
+      "displayName": "iCloud Drive (Mobile Documents)",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "iCloud",
+      "explanation": "iCloud Drive data. Removing it can delete cloud-synced documents on this Mac and beyond. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-keychains",
+      "paths": [
+        "~/Library/Keychains"
+      ],
+      "displayName": "Keychains",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Password keychains. DiskPrune never scans this as a cleanup target. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-messages",
+      "paths": [
+        "~/Library/Messages"
+      ],
+      "displayName": "Messages",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "Messages",
+      "explanation": "iMessage and SMS history. Protected so a cache clean cannot take conversations with it. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-mail",
+      "paths": [
+        "~/Library/Mail"
+      ],
+      "displayName": "Mail",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "Mail",
+      "explanation": "Apple Mail data. Protected; mailboxes are not caches. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-photos",
+      "paths": [
+        "~/Library/Photos"
+      ],
+      "displayName": "Photos library support",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "Photos",
+      "explanation": "Photos library support files. Protected so a library cannot be planned as cache. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-mobilesync",
+      "paths": [
+        "~/Library/Application Support/MobileSync"
+      ],
+      "displayName": "iOS backups (MobileSync)",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "Finder / Apple Devices",
+      "explanation": "Device backups. Losing them means you cannot restore an iPhone or iPad from this Mac. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-ssh",
+      "paths": [
+        "~/.ssh"
+      ],
+      "displayName": "SSH keys",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "OpenSSH",
+      "explanation": "Private keys and known_hosts. Never a cleanup candidate. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-gnupg",
+      "paths": [
+        "~/.gnupg"
+      ],
+      "displayName": "GnuPG home",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "GnuPG",
+      "explanation": "OpenPGP private keys and trust database. Protected unconditionally. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-aws",
+      "paths": [
+        "~/.aws"
+      ],
+      "displayName": "AWS credentials",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "AWS CLI",
+      "explanation": "AWS configuration and credentials. DiskPrune will not plan this directory. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-gcloud",
+      "paths": [
+        "~/.config/gcloud"
+      ],
+      "displayName": "gcloud config",
+      "category": "userData",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "Google Cloud SDK",
+      "explanation": "gcloud credentials and configuration. Protected so a cache rule cannot reach it. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-system",
+      "paths": [
+        "/System"
+      ],
+      "displayName": "macOS System",
+      "category": "application",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "The signed system volume. DiskPrune never enumerates this as a cleanup root. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-library-apple",
+      "paths": [
+        "/Library/Apple"
+      ],
+      "displayName": "Apple system library",
+      "category": "application",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Apple-shipped support files. Not user-deletable cache. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-private-var-db",
+      "paths": [
+        "/private/var/db"
+      ],
+      "displayName": "system databases",
+      "category": "application",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "System databases including TCC. Interfering here can break privacy prompts and more. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    },
+    {
+      "id": "protected-applications",
+      "paths": [
+        "/Applications"
+      ],
+      "displayName": "Applications",
+      "category": "application",
+      "safety": "protected",
+      "regenerable": false,
+      "producer": "macOS",
+      "explanation": "Installed applications. Bundles are never cleanup candidates; this path is also deny-listed. DiskPrune classifies this location as protected.",
+      "consequence": "DiskPrune will refuse to put this path in a cleanup plan. There is no override in v1.",
+      "minMacOS": "14.0",
+      "docsURL": null,
+      "lastReviewed": "2026-09-08",
+      "publish": false
+    }
+  ]
+}

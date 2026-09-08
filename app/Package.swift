@@ -14,7 +14,10 @@ let package = Package(
         .executableTarget(
             name: "DiskPrune",
             dependencies: [],
-            path: "Sources/DiskPrune"
+            path: "Sources/DiskPrune",
+            resources: [
+                .process("Knowledge/Resources")
+            ]
         ),
         .testTarget(
             name: "DiskPruneTests",

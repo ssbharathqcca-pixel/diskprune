@@ -33,3 +33,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run guardrails
         run: bash scripts/ci-guardrails.sh
+
+  rules-schema:
+    name: 4 Storage-rule schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate shared/storage-rules.json
+        run: node scripts/validate-rules.mjs
+
+  rules-drift:
+    name: 5 Storage-rule drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Re-sync into a temp path and diff
+        run: |
+          tmp="$(mktemp)"
+          bash scripts/sync-rules.sh "$tmp"
+          if ! diff -u app/Sources/DiskPrune/Knowledge/Resources/storage-rules.json "$tmp"; then
+            echo "storage-rules.json drift detected — edit /shared/storage-rules.json and run scripts/sync-rules.sh" >&2
+            exit 1
+          fi

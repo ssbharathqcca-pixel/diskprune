@@ -1,61 +1,58 @@
 # Implementation status
 
-Last verified commit: _local until push_
+Last verified commit: pending push (builder working tree)
 
-This board is evidence-based. An item is `[x]` only after its acceptance
-evidence exists — not merely because a file was added.
+An item is `[x]` only after its acceptance evidence exists.
 
 ## Gate 0 — Repository and build baseline
 
-- [x] `.gitignore` covers `web/dist/`, `.wrangler/`, `node_modules/`, `shared/*.generated.json`
-- [x] `web/dist/` untracked
-- [x] `web/node_modules/` untracked (additional finding: 11,005 files were committed)
-- [x] `worker/.wrangler/cache/wrangler-account.json` untracked
+- [x] `.gitignore` covers `web/dist/`, `.wrangler/`, `node_modules/`
+- [x] `web/dist/`, `web/node_modules/`, `worker/.wrangler/...` untracked
 - [x] `build-and-verify.sh` deleted
-- [x] CI jobs 1–3 added
-- [x] `Package.swift` has a test target
-- [x] APFS snapshot deletion removed from `ScannerActor` (B-8)
-- [x] `Math.random` removed from `worker/src`
-- [ ] `swift build -c release` on macOS (requires GitHub `macos-latest` runner)
-- [ ] `swift test` on macOS (requires GitHub `macos-latest` runner)
-- [x] Guardrails script passes on this Linux builder
+- [x] CI jobs 1–5 added
+- [x] Guardrails pass locally (`scripts/ci-guardrails.sh`)
+- [ ] `swift build` / `swift test` on macOS — **NOT TESTED here** (Linux sandbox, no Swift toolchain). Evidence: GitHub Actions jobs 1–2.
 
 ## Gate 1 — Filesystem safety
 
-- [ ] CleanupPlan / PlannedItem / PathValidator
-- [ ] CleanupExecutor (Trash only, per-item errors)
-- [ ] Seven TOCTOU checks
-- [ ] `deletelocalsnapshots` absent (source: removed in Phase 0; SnapshotInspector not yet added)
+- [x] `PlannedItem.init?` encodes the eight conditions (unit tests in `PlanningTests.swift`)
+- [x] `CleanupPlan.init?` rejects empty and ancestor/descendant
+- [x] Seven TOCTOU checks in `PathValidator.revalidateBeforeTrash`
+- [x] `CleanupExecutor.execute(_:)` takes only `CleanupPlan`
+- [x] Per-item errors; vanished item does not abort the batch (`testCLN01`)
+- [x] Unplanned sibling survives (`testCLN05`)
+- [x] No `removeItem` in `Sources/DiskPrune`
+- [x] `deletelocalsnapshots` absent from production source
+- [ ] Native tests **NOT TESTED** on this host — they will run on `macos-latest`
+- [ ] Legacy `ScannerActor.trash(urls:)` still exists for the old `ContentView` (Rule 18: not deleted until UI replacement is verified)
 
 ## Gate 2 — Scanner and accounting
 
-- [ ] FileIdentity / DirectorySizer / ScanEngine
-- [ ] StorageCoverage
-- [ ] Hardlink and sparse-file tests
+- [x] `FileIdentity.lstat` (only POSIX)
+- [x] `DirectorySizer` depth cap 64, symlink non-follow, hardlink item-local dedup
+- [x] `StorageCoverage` with `permissionLimitedBytes == nil` and notExamined clamp
+- [x] Shared rules corpus, 42 rules, 10 published, validation + drift CI
+- [x] Probes: Xcode, Docker (inspect-only), package managers, caches, logs
+- [x] `SnapshotInspector` lists only (`listlocalsnapshots`)
+- [ ] Fixture sizes / sparse / hardlink tests written; **NOT TESTED** on this host
+- [ ] Real-Mac DerivedData vs `du -sk` — **NOT TESTED** (requires a Mac)
 
-## Gate 3 — Licensing and payment
+## Gate 3 — Licensing
 
-- [ ] D1 schema, webhook signature, idempotency
-- [ ] Encrypted key at rest, Ed25519 tokens
+- [ ] Worker rewrite not started (B-12 remains except `Math.random` removal)
 
 ## Gate 4 — Native UX
 
-- [ ] Replacement UI; `ContentView` still present
+- [ ] New UI not started; `ContentView` placeholders remain
 
 ## Gate 5 — Signed universal release
 
 - [ ] BLOCKED on Apple Developer secrets and a Mac
 
-## Gate 6 — Website / demo / SEO
+## Gate 6 — Website
 
-- [ ] `site/` still present (delete only in commit 7.7 after port verified)
+- [ ] `site/` still present (delete only in commit 7.7)
 
 ## Gate 7 — Launch rehearsal
 
-- [ ] BLOCKED on live Stripe, Resend, and a real Mac
-
-## Known environment limits (this builder)
-
-- Linux sandbox: no Swift toolchain, no `lipo` / `codesign` / `notarytool`
-- No Apple, Stripe, Cloudflare, or Resend secrets in this environment
-- Swift compile and native tests are verified by GitHub Actions, not locally
+- [ ] BLOCKED on live Stripe / Resend / a real Mac
