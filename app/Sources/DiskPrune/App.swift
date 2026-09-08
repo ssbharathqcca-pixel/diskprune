@@ -7,7 +7,11 @@ struct DiskPruneApp: App {
         WindowGroup {
             Group {
                 if let knowledge = try? StorageKnowledge.load() {
-                    RootView(session: AppSession(knowledge: knowledge))
+                    if VisualQARuntime.isEnabled {
+                        VisualQARuntime.root(knowledge: knowledge)
+                    } else {
+                        RootView(session: AppSession(knowledge: knowledge))
+                    }
                 } else {
                     KnowledgeLoadErrorView()
                 }

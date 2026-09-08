@@ -16,13 +16,15 @@ Related:
 On `macos-latest`, the workflow:
 
 1. Builds the real `DiskPrune` product (`swift build -c release`) and packages `DiskPrune.app`.
-2. Compiles the production UI into the existing XCTest target.
-3. Hosts **production** views (`RootView`, `DryRunSheet`, `ReceiptView`, `SettingsRootView`) in a real `NSWindow`.
-4. Writes PNGs organized by theme, window size, and screen.
-5. Launches the packaged `DiskPrune.app` after the XCTest captures. A `screencapture` of that process is best-effort: GitHub-hosted runners typically lack Screen Recording TCC, so that PNG may be missing. Hosted production-view PNGs are then the reviewable evidence.
+2. Launches **that binary** with `DISKPRUNE_VISUAL_QA=1`.
+3. The env-gated harness (inert in normal launches) drives the production `RootView` already on screen.
+4. Writes PNGs from `NSWindow.contentView.cacheDisplay` (the app’s own view — no Screen Recording TCC).
+5. Exits. Unit tests only assert `VisualQARuntime.isEnabled == false`.
 
+XCTest cannot host AppKit on this runner (signal 5). The catalog therefore runs inside the real app process.
 
 It does **not** click **Move to Trash**. It does **not** call `CleanupExecutor`. It does **not** bypass `CleanupPlan` / TOCTOU.
+
 
 ---
 
@@ -30,8 +32,7 @@ It does **not** click **Move to Trash**. It does **not** call `CleanupExecutor`.
 
 | Shot | Source | Data |
 | --- | --- | --- |
-| `real-app/first-launch.png` | Packaged `DiskPrune.app` process | Runner’s real volume header via `VolumeProbe.home()` |
-| `01-first-launch` | Production `RootView` in `NSWindow` | Same idle session as a normal launch (`scanOnLaunch` off) |
+| `01-first-launch` | Live `DiskPrune.app` `RootView` | Idle session, runner volume header, `scanOnLaunch` off |
 | `02-scan-progress` | Production `RootView` → `ScanView` | Injected `AppSession.phase = .scanning` (no disk walk) |
 | `03-overview-autopsy` | Production `RootView` → `StorageAutopsyView` | `AppSession.ingestScan` with production `StorageItem` / `StorageCoverage` |
 | `04-category-detail` | Production `ResultsView` | Same session, `destination = .category(.developer)` |
@@ -74,7 +75,8 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 - Reduce Motion / Reduce Transparency / VoiceOver / Dynamic Type
 - Gatekeeper “right-click Open” on a customer Mac
 - Liquid Glass vs macOS 14 floor on a physical display
-- That `screencapture` of the packaged app succeeded (Screen Recording TCC often blocks it; hosted `RootView` shots are then the evidence)
+- That `screencapture` of another process succeeded (not used; the app snapshots its own `contentView`)
+
 
 - Exact window-server chrome of a user session vs `NSWindow` in XCTest
 
