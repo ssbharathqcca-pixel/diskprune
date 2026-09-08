@@ -101,9 +101,9 @@ fi
 # Terminology contract (Correction 1) — only once those views exist
 for f in "$SRC/UI/ReceiptView.swift" "$SRC/UI/CleanupPlanView.swift"; do
   if [[ -f "$f" ]]; then
-    if grep -nEiw 'freed|reclaimed' "$f" >/dev/null 2>&1; then
-      grep -nEiw 'freed|reclaimed' "$f" >&2 || true
-      fail "T-TERM-01: 'freed'/'reclaimed' are forbidden in $(basename "$f")"
+    if grep -nEiw 'freed|reclaimed|reclaim' "$f" >/dev/null 2>&1; then
+      grep -nEiw 'freed|reclaimed|reclaim' "$f" >&2 || true
+      fail "T-TERM-01: 'freed'/'reclaimed'/'reclaim' are forbidden in $(basename "$f")"
     fi
   fi
 done

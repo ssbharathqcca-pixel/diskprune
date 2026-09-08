@@ -3,13 +3,14 @@ import SwiftUI
 
 struct RootView: View {
     @StateObject var session: AppSession
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     init(session: AppSession) {
         _session = StateObject(wrappedValue: session)
     }
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebar
                 .navigationSplitViewColumnWidth(min: Geometry.sidebarMin, ideal: Geometry.sidebarWidth, max: Geometry.sidebarMax)
         } detail: {

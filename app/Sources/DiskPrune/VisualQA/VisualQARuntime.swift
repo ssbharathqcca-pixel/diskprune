@@ -64,7 +64,7 @@ private enum VisualQACatalog {
         "Gate 4 remains NOT PASS. These PNGs are supplemental evidence for a human reviewer.",
         "ImageRenderer is not used (List/TabView/Form render as a yellow prohibition placeholder).",
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
-        "RootView shots are the live WindowGroup window, flattened via CALayer.render of the already-committed layer tree.",
+        "RootView shots flatten the live window with cacheDisplay after making NSVisualEffectView composite within-window (CALayer.render drops sidebar vibrancy).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
     ]
     private static var auxWindow: NSWindow?
@@ -161,78 +161,73 @@ private enum VisualQACatalog {
         }
 
         writeManifest()
-        try? Data("checkpoint-before-live-lists\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
-        VisualQARuntime.trace("checkpoint before live List/autopsy shots shots=\(records.count)")
+        try? Data("checkpoint-before-data-views\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
+        VisualQARuntime.trace("checkpoint before data views shots=\(records.count)")
 
-        // Phase B: drive the live production RootView through fixture destinations.
+        // Phase B: production child views with fixture data. Not a second RootView.
+        // Live ingestScan previously hung because destination was still .overview
+        // (StorageAutopsyView + hatch + sidebar Storage section in one update).
+        let empty = AppSession(knowledge: knowledge)
+        ingestEmpty(empty)
+        let partialSession = AppSession(knowledge: knowledge)
+        ingest(partialSession, partial: true)
+
         for dark in [false, true] {
             applyAppearance(dark)
             for size in [wide, narrow] {
-                ingest(live, partial: false)
-                live.inspectorOpen = false
-                live.showDryRun = false
-                live.showReceipt = false
+                fixture.destination = .category(.developer)
+                fixture.inspectorOpen = false
+                attemptHosted(ResultsView(session: fixture, filter: .bucket(.developer)), screen: "04-category-detail", dark: dark, size: size, fixture: true, preferLayer: true)
 
-                live.destination = .category(.developer)
-                waitForLayout(window, size: size)
-                attemptLive(window, screen: "04-category-detail", dark: dark, size: size, fixture: true)
+                fixture.destination = .cleanup
+                attemptHosted(ResultsView(session: fixture, filter: .cleanup), screen: "05-cleanup-candidates", dark: dark, size: size, fixture: true, preferLayer: true)
 
-                live.destination = .cleanup
-                waitForLayout(window, size: size)
-                attemptLive(window, screen: "05-cleanup-candidates", dark: dark, size: size, fixture: true)
+                attemptHosted(SnapshotView(summary: fixture.snapshots), screen: "07b-snapshots-list", dark: dark, size: size, fixture: true, preferLayer: true)
 
-                if let item = live.items.first(where: { $0.safety == .safe }) {
-                    live.openInspector(item)
-                    waitForLayout(window, size: size)
-                    attemptLive(window, screen: "06b-inspector-in-root", dark: dark, size: size, fixture: true)
-                    live.inspectorOpen = false
-                }
-
-                live.destination = .snapshots
-                waitForLayout(window, size: size)
-                attemptLive(window, screen: "07b-snapshots-list", dark: dark, size: size, fixture: true)
-
-                ingestEmpty(live)
-                live.destination = .cleanup
-                live.inspectorOpen = false
-                waitForLayout(window, size: size)
-                attemptLive(window, screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true)
-
-                ingest(live, partial: false)
-                if let item = live.items.first(where: { $0.safety == .protected }) {
-                    live.destination = .cleanup
-                    live.openInspector(item)
-                    waitForLayout(window, size: size)
-                    attemptLive(window, screen: "10b-protected-in-root", dark: dark, size: size, fixture: true)
-                    live.inspectorOpen = false
-                }
-                if let item = live.items.first(where: { $0.safety == .advanced }) {
-                    live.destination = .cleanup
-                    live.openInspector(item)
-                    waitForLayout(window, size: size)
-                    attemptLive(window, screen: "11b-advanced-in-root", dark: dark, size: size, fixture: true)
-                    live.inspectorOpen = false
-                }
+                empty.destination = .cleanup
+                attemptHosted(ResultsView(session: empty, filter: .cleanup), screen: "08-empty-no-candidates", dark: dark, size: size, fixture: true, preferLayer: true)
             }
+            fixture.destination = .overview
+            attemptHosted(StorageAutopsyView(session: fixture), screen: "03-overview-autopsy", dark: dark, size: wide, fixture: true, preferLayer: true)
+            partialSession.destination = .overview
+            attemptHosted(StorageAutopsyView(session: partialSession), screen: "09-overview-partial", dark: dark, size: wide, fixture: true, preferLayer: true)
         }
 
         writeManifest()
-        try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
-        VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
+        try? Data("checkpoint-before-live-ingest\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
+        VisualQARuntime.trace("checkpoint before live ingest shots=\(records.count)")
 
-        // Phase C last: Overview / Autopsy. Hatch Canvas previously hung off-screen capture.
-        for dark in [false, true] {
-            applyAppearance(dark)
-            ingest(live, partial: false)
-            live.destination = .overview
+        // Phase C: live RootView after ingest. Switch off Overview first so Autopsy
+        // is not the first paint. cacheDisplay, no displayIfNeeded.
+        applyAppearance(false)
+        live.destination = .cleanup
+        live.phase = .ready
+        live.coverage = nil
+        live.items = []
+        waitForLayout(window, size: wide, flush: false)
+        VisualQARuntime.trace("live ingest begin dest=\(String(describing: live.destination))")
+        ingest(live, partial: false)
+        live.destination = .cleanup
+        live.inspectorOpen = false
+        VisualQARuntime.trace("live ingest returned items=\(live.items.count)")
+        waitForLayout(window, size: wide, flush: false)
+        proveSidebar(window)
+        attemptLive(window, screen: "05b-cleanup-in-root", dark: false, size: wide, fixture: true)
+
+        live.destination = .category(.developer)
+        waitForLayout(window, size: wide, flush: false)
+        attemptLive(window, screen: "04b-category-in-root", dark: false, size: wide, fixture: true)
+
+        live.destination = .overview
+        waitForLayout(window, size: wide, flush: false)
+        attemptLive(window, screen: "03b-autopsy-in-root", dark: false, size: wide, fixture: true)
+
+        if let item = live.items.first(where: { $0.safety == .safe }) {
+            live.destination = .cleanup
+            live.openInspector(item)
+            waitForLayout(window, size: wide, flush: false)
+            attemptLive(window, screen: "06b-inspector-in-root", dark: false, size: wide, fixture: true)
             live.inspectorOpen = false
-            waitForLayout(window, size: wide)
-            attemptLive(window, screen: "03-overview-autopsy", dark: dark, size: wide, fixture: true)
-
-            ingest(live, partial: true)
-            live.destination = .overview
-            waitForLayout(window, size: wide)
-            attemptLive(window, screen: "09-overview-partial", dark: dark, size: wide, fixture: true)
         }
     }
 
@@ -295,9 +290,9 @@ private enum VisualQACatalog {
         }
     }
 
-    private static func attemptHosted<V: View>(_ view: V, screen: String, dark: Bool, size: CGSize, fixture: Bool, folder: String? = nil) {
+    private static func attemptHosted<V: View>(_ view: V, screen: String, dark: Bool, size: CGSize, fixture: Bool, folder: String? = nil, preferLayer: Bool = false) {
         do {
-            try captureHosted(view, screen: screen, dark: dark, size: size, fixture: fixture, folder: folder)
+            try captureHosted(view, screen: screen, dark: dark, size: size, fixture: fixture, folder: folder, preferLayer: preferLayer)
         } catch {
             VisualQARuntime.trace("SKIP \(screen) hosted \(error)")
             limitations.append("\(screen) \(dark ? "dark" : "light") \(Int(size.width))x\(Int(size.height)): \(error)")
@@ -309,10 +304,15 @@ private enum VisualQACatalog {
         applyAppearance(dark)
         waitForLayout(window, size: size)
         guard let view = window.contentView else { throw CaptureError.noWindow }
-        let rep = try flattenLayer(view)
+        if screen.hasPrefix("01-") { proveSidebar(window) }
+        var rep = try flattenView(view)
+        if leftColumnIsBlank(rep) {
+            VisualQARuntime.trace("left column blank on \(screen); retry cacheDisplay")
+            rep = try cacheDisplayOnly(view)
+        }
         try rejectIfInvalid(rep, screen: screen)
         let dir = "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
-        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "live-window-layer")
+        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "live-window-cacheDisplay")
         VisualQARuntime.trace("captured \(screen) live dark=\(dark) \(Int(size.width))x\(Int(size.height))")
     }
 
@@ -322,7 +322,8 @@ private enum VisualQACatalog {
         dark: Bool,
         size: CGSize,
         fixture: Bool,
-        folder: String? = nil
+        folder: String? = nil,
+        preferLayer: Bool = false
     ) throws {
         VisualQARuntime.trace("hosted \(screen) begin dark=\(dark) \(Int(size.width))x\(Int(size.height))")
         applyAppearance(dark)
@@ -343,13 +344,13 @@ private enum VisualQACatalog {
         window.contentView = hosting
         window.setContentSize(size)
         window.orderFrontRegardless()
-        waitForLayout(window, size: size)
+        waitForLayout(window, size: size, flush: false)
 
         let target = window.contentView ?? hosting
-        let rep = try flattenLayer(target)
+        let rep = preferLayer ? try flattenLayerFallback(target) : try flattenView(target)
         try rejectIfInvalid(rep, screen: screen)
         let dir = folder ?? "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
-        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "hosted-production-view-layer")
+        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: preferLayer ? "hosted-production-view-layer" : "hosted-production-view-cacheDisplay")
         VisualQARuntime.trace("captured \(screen) hosted dark=\(dark) \(Int(size.width))x\(Int(size.height))")
     }
 
@@ -387,29 +388,128 @@ private enum VisualQACatalog {
         return NSApp.windows.first(where: { $0.contentView != nil })
     }
 
-    private static func waitForLayout(_ window: NSWindow, size: CGSize) {
+    private static func waitForLayout(_ window: NSWindow, size: CGSize, flush: Bool = true) {
         window.appearance = NSApp.appearance
         window.setContentSize(size)
         window.makeKeyAndOrderFront(nil)
         window.contentView?.wantsLayer = true
+        prepareMaterials(window.contentView)
         window.contentView?.layoutSubtreeIfNeeded()
         window.layoutIfNeeded()
-        window.displayIfNeeded()
+        if flush {
+            window.displayIfNeeded()
+        }
         spin(0.45)
         window.contentView?.layoutSubtreeIfNeeded()
-        window.displayIfNeeded()
+        if flush {
+            window.displayIfNeeded()
+        }
     }
 
-    /// Snapshot the already-committed layer tree. Does not re-enter SwiftUI List/Canvas drawing.
-    private static func flattenLayer(_ view: NSView) throws -> NSBitmapImageRep {
-        view.wantsLayer = true
+    /// Make sidebar/material views composite into the bitmap. NSVisualEffectView
+    /// uses a window-server filter; CALayer.render drops it, leaving a blank column.
+    private static func prepareMaterials(_ view: NSView?) {
+        guard let view else { return }
+        if let effect = view as? NSVisualEffectView {
+            effect.state = .active
+            effect.isEmphasized = true
+            effect.blendingMode = .withinWindow
+            effect.wantsLayer = true
+            effect.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        }
+        if let table = view as? NSTableView {
+            table.backgroundColor = .clear
+            table.wantsLayer = true
+        }
+        view.canDrawSubviewsIntoLayer = true
+        for sub in view.subviews {
+            prepareMaterials(sub)
+        }
+    }
+
+    private static func proveSidebar(_ window: NSWindow) {
+        var labels: [String] = []
+        var effects = 0
+        var tables = 0
+        func walk(_ view: NSView) {
+            if view is NSVisualEffectView { effects += 1 }
+            if let table = view as? NSTableView {
+                tables += 1
+                VisualQARuntime.trace("NSTableView rows=\(table.numberOfRows) frame=\(table.frame)")
+                for row in 0..<table.numberOfRows {
+                    if let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) {
+                        collectText(cell, into: &labels)
+                    }
+                }
+            }
+            if let field = view as? NSTextField, !field.stringValue.isEmpty {
+                labels.append(field.stringValue)
+            }
+            for sub in view.subviews { walk(sub) }
+        }
+        if let root = window.contentView { walk(root) }
+        let unique = labels.reduce(into: [String]()) { acc, item in
+            if !acc.contains(item) { acc.append(item) }
+        }
+        VisualQARuntime.trace("sidebar proof effects=\(effects) tables=\(tables) labels=\(unique.joined(separator: " | "))")
+        limitations.append("sidebar view dump: effects=\(effects) tables=\(tables) labels=\(unique.joined(separator: ", "))")
+    }
+
+    private static func collectText(_ view: NSView, into labels: inout [String]) {
+        if let field = view as? NSTextField, !field.stringValue.isEmpty {
+            labels.append(field.stringValue)
+        }
+        for sub in view.subviews { collectText(sub, into: &labels) }
+    }
+
+    /// cacheDisplay after prepareMaterials. CALayer.render cannot snapshot sidebar vibrancy.
+    private static func flattenView(_ view: NSView) throws -> NSBitmapImageRep {
+        prepareMaterials(view)
         view.layoutSubtreeIfNeeded()
-        view.displayIfNeeded()
-        guard let layer = view.layer else { throw CaptureError.noWindow }
+        if let cached = try? cacheDisplayOnly(view), !leftColumnIsBlank(cached) {
+            return cached
+        }
+        return try flattenLayerFallback(view)
+    }
+
+    private static func cacheDisplayOnly(_ view: NSView) throws -> NSBitmapImageRep {
         let bounds = view.bounds
         guard bounds.width.isFinite, bounds.height.isFinite, bounds.width > 8, bounds.height > 8 else {
             throw CaptureError.blank("zero-bounds")
         }
+        guard let rep = view.bitmapImageRepForCachingDisplay(in: bounds) else { throw CaptureError.png }
+        view.cacheDisplay(in: bounds, to: rep)
+        return rep
+    }
+
+    private static func leftColumnIsBlank(_ rep: NSBitmapImageRep, points: CGFloat = 240) -> Bool {
+        guard let data = rep.bitmapData else { return true }
+        let scale = max(CGFloat(rep.pixelsWide) / max(rep.size.width, 1), 1)
+        let width = min(Int((points * scale).rounded()), rep.pixelsWide / 2)
+        let height = rep.pixelsHigh
+        let bpp = max(rep.bitsPerPixel / 8, 1)
+        let bytesPerRow = rep.bytesPerRow
+        var minL = 255
+        var maxL = 0
+        var samples = 0
+        for y in Swift.stride(from: 0, to: height, by: 8) {
+            for x in Swift.stride(from: 0, to: width, by: 8) {
+                samples += 1
+                let pixel = data + y * bytesPerRow + x * bpp
+                let l = (Int(pixel[0]) + Int(pixel[1]) + Int(bpp > 2 ? pixel[2] : pixel[0])) / 3
+                minL = min(minL, l)
+                maxL = max(maxL, l)
+            }
+        }
+        return samples == 0 || (maxL - minL) < 12
+    }
+
+    private static func flattenLayerFallback(_ view: NSView) throws -> NSBitmapImageRep {
+        prepareMaterials(view)
+        view.wantsLayer = true
+        view.layoutSubtreeIfNeeded()
+        guard let layer = view.layer else { throw CaptureError.noWindow }
+        let bounds = view.bounds
         let scale = max(view.window?.backingScaleFactor ?? 2, 1)
         let pw = max(Int((bounds.width * scale).rounded()), 1)
         let ph = max(Int((bounds.height * scale).rounded()), 1)

@@ -24,7 +24,7 @@ struct ReceiptView: View {
                 Text("Your files are still in Trash and can be restored.")
                     .font(.callout)
                 HStack {
-                    Text("Empty Trash to permanently reclaim this space.")
+                    Text("Empty Trash to permanently remove these items from your Mac.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     Spacer()

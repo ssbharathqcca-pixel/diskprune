@@ -13,7 +13,7 @@ final class TerminologyTests: XCTestCase {
             let url = ui.appendingPathComponent(name)
             XCTAssertTrue(FileManager.default.fileExists(atPath: url.path), "missing \(name)")
             let text = try String(contentsOf: url, encoding: .utf8)
-            for banned in ["freed", "reclaimed"] {
+            for banned in ["freed", "reclaimed", "reclaim"] {
                 XCTAssertFalse(
                     text.lowercased().contains(banned),
                     "\(name) contains forbidden term \(banned)"
@@ -24,7 +24,7 @@ final class TerminologyTests: XCTestCase {
         XCTAssertTrue(receipt.contains("Estimated recoverable"))
         XCTAssertTrue(receipt.contains("Moved to Trash"))
         XCTAssertTrue(receipt.contains("Storage immediately available"))
-        XCTAssertFalse(receipt.contains("volumeAvailableBefore"))
-        XCTAssertFalse(receipt.contains("volumeAvailableAfter"))
+        XCTAssertTrue(receipt.contains("Empty Trash to permanently remove these items from your Mac."))
+        XCTAssertFalse(receipt.lowercased().contains("reclaim"))
     }
 }

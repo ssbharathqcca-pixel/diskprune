@@ -6,7 +6,7 @@
 
 - Replaced the placeholder `ContentView` shell with the Design Guide interface: Overview (Storage Autopsy), Cleanup, Snapshots. Scan is a toolbar action. Settings is a native Settings scene.
 - Cleanup goes Scan → selection → `PlannedItem` → `CleanupPlan` → dry run → TOCTOU → `CleanupExecutor` → Trash → receipt. The new UI does not call `ScannerActor.trash(urls:)`.
-- Receipt shows three accounting lines: Estimated recoverable, Moved to Trash, Storage immediately available. Trashed bytes are never called freed.
+- Receipt copy no longer says “reclaim” for Trash-moved bytes. It now reads: “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 also bans `reclaim` in ReceiptView / CleanupPlanView.
 - Snapshots are inspect-only. No delete affordance and no snapshot-deletion command in the UI.
 - Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`. Gate 4 remains NOT PASS.
 - Visual QA CI: launches the packaged `DiskPrune.app` on `macos-latest`. The env-gated harness snapshots the live `RootView` window via `CALayer.render` (not ImageRenderer, not a second hosted RootView). Child views (inspector, dry-run, receipt, settings) are production views in an auxiliary on-screen window. Fixtures use existing models and `ingestScan`. No Trash move. Gate 4 remains NOT PASS.
