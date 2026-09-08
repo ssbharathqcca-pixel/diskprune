@@ -9,7 +9,7 @@
 - Receipt copy no longer says “reclaim” for Trash-moved bytes. It now reads: “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 also bans `reclaim` in ReceiptView / CleanupPlanView.
 - Snapshots are inspect-only. No delete affordance and no snapshot-deletion command in the UI.
 - Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`. Gate 4 remains NOT PASS.
-- Visual QA CI: launches the packaged `DiskPrune.app` on `macos-latest`. The env-gated harness snapshots the live `RootView` window via `CALayer.render` (not ImageRenderer, not a second hosted RootView). Child views (inspector, dry-run, receipt, settings) are production views in an auxiliary on-screen window. Fixtures use existing models and `ingestScan`. No Trash move. Gate 4 remains NOT PASS.
+- Visual QA capture no longer mutates `NSVisualEffectView.canDrawSubviewsIntoLayer` (that hung macos-latest with 0 PNGs). The harness writes a `CALayer.render` PNG first, then restores the live sidebar via `CGWindowListCreateImage` or the on-screen `NSTableView` cell labels. Receipt copy is “Empty Trash to permanently remove these items from your Mac.” Gate 4 remains NOT PASS.
 
 
 ### Fixes

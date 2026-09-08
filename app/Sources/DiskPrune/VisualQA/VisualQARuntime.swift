@@ -64,7 +64,8 @@ private enum VisualQACatalog {
         "Gate 4 remains NOT PASS. These PNGs are supplemental evidence for a human reviewer.",
         "ImageRenderer is not used (List/TabView/Form render as a yellow prohibition placeholder).",
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
-        "RootView shots flatten the live window with cacheDisplay after making NSVisualEffectView composite within-window (CALayer.render drops sidebar vibrancy).",
+        "RootView shots flatten the live window with CALayer.render first so a PNG is always on disk. Full-window cacheDisplay of NSVisualEffectView is not used (canDrawSubviewsIntoLayer hung bcc2b49e; CALayer.render drops sidebar vibrancy).",
+        "If the left 240pt column is blank, try CGWindowListCreateImage (real window-server pixels). If TCC denies it, live NSTableView cell labels are composited at their real frames — capture recovery, not a second UI.",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
     ]
     private static var auxWindow: NSWindow?
@@ -290,7 +291,7 @@ private enum VisualQACatalog {
         }
     }
 
-    private static func attemptHosted<V: View>(_ view: V, screen: String, dark: Bool, size: CGSize, fixture: Bool, folder: String? = nil, preferLayer: Bool = false) {
+    private static func attemptHosted<V: View>(_ view: V, screen: String, dark: Bool, size: CGSize, fixture: Bool, folder: String? = nil, preferLayer: Bool = true) {
         do {
             try captureHosted(view, screen: screen, dark: dark, size: size, fixture: fixture, folder: folder, preferLayer: preferLayer)
         } catch {
@@ -302,18 +303,32 @@ private enum VisualQACatalog {
     private static func captureLive(_ window: NSWindow, screen: String, dark: Bool, size: CGSize, fixture: Bool) throws {
         VisualQARuntime.trace("live \(screen) begin dark=\(dark) \(Int(size.width))x\(Int(size.height))")
         applyAppearance(dark)
-        waitForLayout(window, size: size)
+        waitForLayout(window, size: size, flush: false)
         guard let view = window.contentView else { throw CaptureError.noWindow }
-        if screen.hasPrefix("01-") { proveSidebar(window) }
-        var rep = try flattenView(view)
-        if leftColumnIsBlank(rep) {
-            VisualQARuntime.trace("left column blank on \(screen); retry cacheDisplay")
-            rep = try cacheDisplayOnly(view)
-        }
-        try rejectIfInvalid(rep, screen: screen)
+
+        // Layer snapshot first and on disk — never hang the catalog with 0 PNGs.
+        // Do not set canDrawSubviewsIntoLayer (that hung bcc2b49e).
+        var rep = try flattenLayerFallback(view)
         let dir = "\(dark ? "dark" : "light")/\(Int(size.width))x\(Int(size.height))"
-        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: "live-window-cacheDisplay")
-        VisualQARuntime.trace("captured \(screen) live dark=\(dark) \(Int(size.width))x\(Int(size.height))")
+        var source = "live-window-layer"
+        try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: source)
+        VisualQARuntime.trace("captured \(screen) layer dark=\(dark) \(Int(size.width))x\(Int(size.height))")
+
+        if screen.hasPrefix("01-") || screen.hasPrefix("02-") { proveSidebar(window) }
+
+        if leftColumnIsBlank(rep) {
+            VisualQARuntime.trace("left column blank on \(screen); trying CGWindowListCreateImage then live NSTableView cells")
+            if let server = windowServerSnapshot(window), !leftColumnIsBlank(server) {
+                rep = server
+                source = "live-window-CGWindowList"
+            } else {
+                compositeSidebarFromLiveHierarchy(onto: &rep, window: window)
+                source = "live-window-layer+sidebar-cells"
+            }
+            try rejectIfInvalid(rep, screen: screen)
+            try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: source)
+        }
+        VisualQARuntime.trace("captured \(screen) live dark=\(dark) \(Int(size.width))x\(Int(size.height)) source=\(source)")
     }
 
     private static func captureHosted<V: View>(
@@ -323,7 +338,7 @@ private enum VisualQACatalog {
         size: CGSize,
         fixture: Bool,
         folder: String? = nil,
-        preferLayer: Bool = false
+        preferLayer: Bool = true
     ) throws {
         VisualQARuntime.trace("hosted \(screen) begin dark=\(dark) \(Int(size.width))x\(Int(size.height))")
         applyAppearance(dark)
@@ -388,42 +403,14 @@ private enum VisualQACatalog {
         return NSApp.windows.first(where: { $0.contentView != nil })
     }
 
-    private static func waitForLayout(_ window: NSWindow, size: CGSize, flush: Bool = true) {
+    private static func waitForLayout(_ window: NSWindow, size: CGSize, flush: Bool = false) {
         window.appearance = NSApp.appearance
         window.setContentSize(size)
         window.makeKeyAndOrderFront(nil)
-        window.contentView?.wantsLayer = true
-        prepareMaterials(window.contentView)
-        window.contentView?.layoutSubtreeIfNeeded()
-        window.layoutIfNeeded()
-        if flush {
-            window.displayIfNeeded()
-        }
         spin(0.45)
-        window.contentView?.layoutSubtreeIfNeeded()
         if flush {
+            window.contentView?.layoutSubtreeIfNeeded()
             window.displayIfNeeded()
-        }
-    }
-
-    /// Make sidebar/material views composite into the bitmap. NSVisualEffectView
-    /// uses a window-server filter; CALayer.render drops it, leaving a blank column.
-    private static func prepareMaterials(_ view: NSView?) {
-        guard let view else { return }
-        if let effect = view as? NSVisualEffectView {
-            effect.state = .active
-            effect.isEmphasized = true
-            effect.blendingMode = .withinWindow
-            effect.wantsLayer = true
-            effect.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        }
-        if let table = view as? NSTableView {
-            table.backgroundColor = .clear
-            table.wantsLayer = true
-        }
-        view.canDrawSubviewsIntoLayer = true
-        for sub in view.subviews {
-            prepareMaterials(sub)
         }
     }
 
@@ -435,10 +422,13 @@ private enum VisualQACatalog {
             if view is NSVisualEffectView { effects += 1 }
             if let table = view as? NSTableView {
                 tables += 1
-                VisualQARuntime.trace("NSTableView rows=\(table.numberOfRows) frame=\(table.frame)")
+                VisualQARuntime.trace("NSTableView rows=\(table.numberOfRows) frame=\(table.frame) class=\(type(of: table))")
                 for row in 0..<table.numberOfRows {
                     if let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) {
                         collectText(cell, into: &labels)
+                        if let accessibility = cell.accessibilityLabel(), !accessibility.isEmpty, !labels.contains(accessibility) {
+                            labels.append(accessibility)
+                        }
                     }
                 }
             }
@@ -456,17 +446,19 @@ private enum VisualQACatalog {
     }
 
     private static func collectText(_ view: NSView, into labels: inout [String]) {
-        if let field = view as? NSTextField, !field.stringValue.isEmpty {
+        if let field = view as? NSTextField, !field.stringValue.isEmpty, !labels.contains(field.stringValue) {
             labels.append(field.stringValue)
+        }
+        if view.subviews.isEmpty, let label = view.accessibilityLabel(), !label.isEmpty, !labels.contains(label) {
+            labels.append(label)
         }
         for sub in view.subviews { collectText(sub, into: &labels) }
     }
 
-    /// cacheDisplay after prepareMaterials. CALayer.render cannot snapshot sidebar vibrancy.
+    /// cacheDisplay of a hosted child view. Does not mutate NSVisualEffectView.
     private static func flattenView(_ view: NSView) throws -> NSBitmapImageRep {
-        prepareMaterials(view)
         view.layoutSubtreeIfNeeded()
-        if let cached = try? cacheDisplayOnly(view), !leftColumnIsBlank(cached) {
+        if let cached = try? cacheDisplayOnly(view) {
             return cached
         }
         return try flattenLayerFallback(view)
@@ -505,11 +497,13 @@ private enum VisualQACatalog {
     }
 
     private static func flattenLayerFallback(_ view: NSView) throws -> NSBitmapImageRep {
-        prepareMaterials(view)
         view.wantsLayer = true
         view.layoutSubtreeIfNeeded()
         guard let layer = view.layer else { throw CaptureError.noWindow }
         let bounds = view.bounds
+        guard bounds.width.isFinite, bounds.height.isFinite, bounds.width > 8, bounds.height > 8 else {
+            throw CaptureError.blank("zero-bounds")
+        }
         let scale = max(view.window?.backingScaleFactor ?? 2, 1)
         let pw = max(Int((bounds.width * scale).rounded()), 1)
         let ph = max(Int((bounds.height * scale).rounded()), 1)
@@ -525,11 +519,137 @@ private enum VisualQACatalog {
         ) else { throw CaptureError.png }
         ctx.translateBy(x: 0, y: CGFloat(ph))
         ctx.scaleBy(x: scale, y: -scale)
-        ctx.setFillColor(CGColor(gray: 0.93, alpha: 1))
+        let dark = NSApp.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ctx.setFillColor(gray: dark ? 0.17 : 0.93, alpha: 1)
         ctx.fill(CGRect(origin: .zero, size: bounds.size))
         layer.render(in: ctx)
         guard let image = ctx.makeImage() else { throw CaptureError.png }
         return NSBitmapImageRep(cgImage: image)
+    }
+
+    /// Window-server snapshot of the on-screen window. Captures NSVisualEffectView
+    /// vibrancy that CALayer.render drops. Returns nil if TCC denies Screen Recording.
+    private static func windowServerSnapshot(_ window: NSWindow) -> NSBitmapImageRep? {
+        let windowID = CGWindowID(window.windowNumber)
+        guard windowID != 0 else { return nil }
+        guard let image = CGWindowListCreateImage(
+            .null,
+            .optionIncludingWindow,
+            windowID,
+            [.boundsIgnoreZOrder, .bestResolution]
+        ) else {
+            VisualQARuntime.trace("CGWindowListCreateImage nil windowID=\(windowID)")
+            return nil
+        }
+        let rep = NSBitmapImageRep(cgImage: image)
+        VisualQARuntime.trace("CGWindowListCreateImage \(rep.pixelsWide)x\(rep.pixelsHigh) blankLeft=\(leftColumnIsBlank(rep))")
+        if leftColumnIsBlank(rep) { return nil }
+        return rep
+    }
+
+    /// Restore sidebar pixels from the live RootView hierarchy. Not a second UI:
+    /// labels, frames, and selection come from the on-screen NSTableView.
+    private static func compositeSidebarFromLiveHierarchy(onto rep: inout NSBitmapImageRep, window: NSWindow) {
+        guard let content = window.contentView else { return }
+        var table: NSTableView?
+        func findTable(_ view: NSView) {
+            if table != nil { return }
+            if let found = view as? NSTableView {
+                table = found
+                return
+            }
+            for sub in view.subviews { findTable(sub) }
+        }
+        findTable(content)
+
+        guard let copy = writableCopy(rep, pointSize: content.bounds.size) else {
+            VisualQARuntime.trace("composite: could not copy bitmap")
+            return
+        }
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        guard let ctx = NSGraphicsContext(bitmapImageRep: copy) else { return }
+        NSGraphicsContext.current = ctx
+
+        let dark = NSApp.appearance?.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let sidebarWidth = Geometry.sidebarWidth
+        (dark ? NSColor(white: 0.18, alpha: 1) : NSColor(white: 0.93, alpha: 1)).setFill()
+        NSBezierPath(rect: NSRect(x: 0, y: 0, width: sidebarWidth, height: content.bounds.height)).fill()
+        NSColor.separatorColor.setStroke()
+        let divider = NSBezierPath()
+        divider.move(to: NSPoint(x: sidebarWidth - 0.5, y: 0))
+        divider.line(to: NSPoint(x: sidebarWidth - 0.5, y: content.bounds.height))
+        divider.lineWidth = 1
+        divider.stroke()
+
+        var drawn = 0
+        if let table {
+            table.layoutSubtreeIfNeeded()
+            drawn = drawSidebarCellText(table, into: content, sidebarWidth: sidebarWidth)
+            VisualQARuntime.trace("composite: drew \(drawn) live NSTableView labels rows=\(table.numberOfRows)")
+        } else {
+            VisualQARuntime.trace("composite: no NSTableView in live window")
+        }
+        limitations.append("sidebar capture: restored \(drawn) live rows (NSVisualEffectView does not flatten under CALayer.render)")
+        rep = copy
+    }
+
+    @discardableResult
+    private static func drawSidebarCellText(_ table: NSTableView, into content: NSView, sidebarWidth: CGFloat) -> Int {
+        var drawn = 0
+        for row in 0..<table.numberOfRows {
+            guard let cell = table.view(atColumn: 0, row: row, makeIfNecessary: true) else { continue }
+            let selected = table.selectedRow == row
+            let cellFrame = cell.convert(cell.bounds, to: content)
+            if selected {
+                NSColor.selectedContentBackgroundColor.setFill()
+                NSBezierPath(roundedRect: NSRect(x: 8, y: cellFrame.minY, width: sidebarWidth - 16, height: max(cellFrame.height, 1)), xRadius: 6, yRadius: 6).fill()
+            }
+            var labels: [String] = []
+            collectText(cell, into: &labels)
+            if labels.isEmpty, let accessibility = cell.accessibilityLabel(), !accessibility.isEmpty {
+                labels.append(accessibility)
+            }
+            guard let text = labels.first, !text.isEmpty else { continue }
+            let color: NSColor = selected ? .alternateSelectedControlTextColor : .labelColor
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 13),
+                .foregroundColor: color
+            ]
+            let drawRect = NSRect(x: 28, y: cellFrame.minY + 2, width: sidebarWidth - 40, height: max(cellFrame.height - 4, 12))
+            NSAttributedString(string: text, attributes: attrs).draw(with: drawRect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+            drawn += 1
+        }
+        return drawn
+    }
+
+    private static func writableCopy(_ rep: NSBitmapImageRep, pointSize: CGSize) -> NSBitmapImageRep? {
+        guard let cg = rep.cgImage else { return nil }
+        guard let copy = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: max(rep.pixelsWide, 1),
+            pixelsHigh: max(rep.pixelsHigh, 1),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 32
+        ) else { return nil }
+        copy.size = pointSize
+        NSGraphicsContext.saveGraphicsState()
+        if let ctx = NSGraphicsContext(bitmapImageRep: copy) {
+            NSGraphicsContext.current = ctx
+            NSImage(cgImage: cg, size: pointSize).draw(
+                in: NSRect(origin: .zero, size: pointSize),
+                from: .zero,
+                operation: .copy,
+                fraction: 1
+            )
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        return copy
     }
 
     private static func rejectIfInvalid(_ rep: NSBitmapImageRep, screen: String) throws {
@@ -577,14 +697,19 @@ private enum VisualQACatalog {
             throw CaptureError.blank(relative)
         }
         try png.write(to: url)
-        records.append([
+        let record = [
             "file": relative,
             "screen": screen,
             "theme": dark ? "dark" : "light",
             "size": "\(Int(size.width))x\(Int(size.height))",
             "source": source,
             "fixture": fixture ? "true" : "false",
-        ])
+        ]
+        if let idx = records.firstIndex(where: { $0["file"] == relative }) {
+            records[idx] = record
+        } else {
+            records.append(record)
+        }
     }
 
     private static func writeManifest() {

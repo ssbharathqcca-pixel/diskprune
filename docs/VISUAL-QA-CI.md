@@ -19,12 +19,14 @@ On `macos-latest`, the workflow:
 2. Injects `LSEnvironment` (`DISKPRUNE_VISUAL_QA=1` + output path) into that app’s Info.plist and ad-hoc signs it.
 3. Launches **that .app** via LaunchServices (`open DiskPrune.app`).
 4. The env-gated harness (inert in normal launches) drives the production `RootView` already on screen.
-5. Writes PNGs by flattening the **already-committed** `CALayer` of:
-   - the live `WindowGroup` window (`RootView` states), or
-   - an auxiliary on-screen `NSWindow` hosting a production child view (inspector, dry-run, receipt, settings).
+5. Writes PNGs from the live window:
+   - `CALayer.render` first, written to disk immediately so a hang later cannot produce 0 PNGs.
+   - If the left ~240pt sidebar column has no contrast (NSVisualEffectView is a window-server filter and does not flatten), try `CGWindowListCreateImage` of the on-screen window (real vibrancy). If Screen Recording TCC denies it, composite the live `NSTableView` cell labels at their real frames. That is capture recovery from the production sidebar, not a second UI.
+   - Production child views (inspector, dry-run, receipt, settings, autopsy, category, cleanup) are hosted in an auxiliary on-screen `NSWindow` and flattened with `CALayer.render`.
 6. **Does not** use `ImageRenderer` (on macOS it draws `List` / `TabView` / `Form` as a yellow prohibition placeholder).
 7. **Does not** host a second `RootView` and call `displayIgnoringOpacity` (that hung the runner on List).
-8. Exits. Unit tests only assert `VisualQARuntime.isEnabled == false`.
+8. **Does not** set `canDrawSubviewsIntoLayer` on `NSVisualEffectView` (that hung run [34288655442](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34288655442) on `bcc2b49e` with 0 PNGs).
+9. Exits. Unit tests only assert `VisualQARuntime.isEnabled == false`.
 
 XCTest cannot host AppKit on this runner (signal 5). The catalog therefore runs inside the real app process.
 
