@@ -1,0 +1,12 @@
+{
+  "name": "diskprune-licensing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-sqlite --test test/*.test.js",
+    "test:licensing": "node --experimental-sqlite --test test/crypto.test.js test/tokens.test.js test/webhook.test.js"
+  },
+  "dependencies": {
+    "stripe": "^17.7.0"
+  }
+}

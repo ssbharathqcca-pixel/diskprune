@@ -14,7 +14,7 @@ delete APFS snapshots, or delete Docker disk images.
 | [`docs/`](docs/) | Architecture, safety, Design Guide, Visual QA |
 | [`site/`](site/) | Current preview website + simulated demo (to be ported) |
 | [`web/`](web/) | Astro stub — target website after the port |
-| [`worker/`](worker/) | Cloudflare Worker (pre-rewrite; signature verification is Phase 4) |
+| [`worker/`](worker/) | Cloudflare Worker licensing backend (D1 + Stripe-verified webhooks) |
 | [`shared/`](shared/) | Canonical storage-rules |
 
 ## Native app (Phase 3)
@@ -23,7 +23,7 @@ The running UI is Overview / Cleanup / Snapshots per [`docs/DESIGN-GUIDE.md`](do
 
 Cleanup path: `ScanEngine` → selection → `PlannedItem` → `CleanupPlan` → dry run → TOCTOU → `CleanupExecutor` → Trash → receipt (three accounting lines).
 
-**Gate 4 (visual QA): PASS** on `2241cbe5` after human review of the CI live-window artifact ([`docs/VISUAL-QA-CI.md`](docs/VISUAL-QA-CI.md)). Phase 4 is not started.
+**Gate 4 (visual QA): PASS** on `2241cbe5` after human review of the CI live-window artifact ([`docs/VISUAL-QA-CI.md`](docs/VISUAL-QA-CI.md)).
 
 
 ### Visual QA build
@@ -56,7 +56,8 @@ See [`docs/CLEANUP_SAFETY.md`](docs/CLEANUP_SAFETY.md) and [`docs/KNOWN_LIMITATI
 ## CI
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs a debug Swift build,
-Swift tests, guardrails, and storage-rules checks on every push.
+Swift tests, guardrails, storage-rules checks, Worker tests, and licensing
+tests on every push.
 
 The macOS DMG workflow is ad-hoc signed and runner-arch. Universal Developer ID
 signing is Phase 6.
@@ -67,9 +68,31 @@ signing is Phase 6.
 to `web/` (Astro) and then deleted. Do not treat the demo as more capable than
 the binary.
 
-## License worker (current, not the target)
+## License worker
 
-`worker/` currently stores keys in KV, does **not** verify Stripe signatures,
-and exposes `GET /key-lookup`. That endpoint is a known defect (B-12).
+`worker/` verifies Stripe signatures (`constructEventAsync`), stores licenses
+in D1 (AES-256-GCM at rest), and issues Ed25519 tokens. There is **no**
+`GET /key-lookup`. Checkout status returns payment/delivery state and a masked
+email only — never a key or token.
+
+| Endpoint | Role |
+| --- | --- |
+| `POST /webhook` | Stripe-signed fulfilment |
+| `POST /v1/licenses/activate` | Activate a device; 90-day token |
+| `POST /v1/licenses/refresh` | Renew; expired-but-valid tokens accepted; released/revoked blocked |
+| `POST /v1/licenses/release` | Free a seat |
+| `POST /v1/licenses/resend` | Always `200 {ok:true}` (no enumeration) |
+| `GET /v1/checkout/:id/status` | Status only |
+
+The native app does not yet verify tokens (Phase 5). Production D1/KV ids and
+Wrangler secrets are owner-held and are not in this repository.
+
+Worker tests (Node 22, `--experimental-sqlite`):
+
+```bash
+cd worker
+npm ci
+npm test
+```
 
 Buy: [Stripe checkout](https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200)

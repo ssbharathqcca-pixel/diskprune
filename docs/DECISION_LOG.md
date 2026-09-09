@@ -31,7 +31,7 @@ Append-only. Record decisions actually made during implementation.
 ## DEC-004 — Ed25519 signed licenses
 
 - Date: 2026-09-08
-- Status: accepted (handoff); not yet implemented
+- Status: accepted (handoff); Worker signing implemented in Phase 4; app verification is Phase 5
 - Decision: Compact JWS-style tokens, signed with Ed25519 on the Worker, verified with CryptoKit.
 - Rationale: Offline verification without shipping the private key.
 - Rejected: "presence of a Keychain item means licensed."
@@ -91,3 +91,11 @@ Append-only. Record decisions actually made during implementation.
 - Decision: The Snapshots pane states that DiskPrune does not delete snapshots and links Apple's local-snapshot documentation. It does not print a snapshot-deletion command.
 - Rationale: T-SNAP-03 / Builder Rule 6 forbid that API in production source. Safety architecture wins over Design Guide 13.9's Terminal snippet.
 - Rejected: Showing the deletion command as user education.
+
+## DEC-012 — Phase 4 Worker uses node:sqlite for tests
+
+- Date: 2026-09-08
+- Status: accepted
+- Decision: Worker unit tests wrap Node 22 `node:sqlite` `DatabaseSync` as a D1 stand-in. Production runtime is Cloudflare D1. The only production npm dependency is `stripe`.
+- Rationale: Handoff forbids extra Worker dependencies. `better-sqlite3` would need a native build.
+- Rejected: Hitting a live D1 from CI; adding a test-only native SQLite binding.

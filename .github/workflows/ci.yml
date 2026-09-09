@@ -60,3 +60,31 @@ jobs:
             echo "storage-rules.json drift detected — edit /shared/storage-rules.json and run scripts/sync-rules.sh" >&2
             exit 1
           fi
+
+  worker-tests:
+    name: 6 Worker tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install and test
+        working-directory: worker
+        run: |
+          npm ci
+          npm test
+
+  licensing-tests:
+    name: 7 Licensing tests (token, crypto, idempotency)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install and test licensing
+        working-directory: worker
+        run: |
+          npm ci
+          npm run test:licensing

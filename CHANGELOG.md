@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Licensing backend (Phase 4)
+
+- Rewrote `worker/` onto D1 + KV rate limits. Stripe webhooks use `constructEventAsync` with `SubtleCryptoProvider`. Unsigned `POST /webhook` is `400` and writes nothing (B-12).
+- Removed `GET /key-lookup`. `GET /v1/checkout/:id/status` returns payment/delivery state and a masked email only.
+- License keys are Crockford `PRUNE-XXXXX-XXXXX-XXXXX-XXXXX`, hashed (SHA-256) and stored as AES-256-GCM `v1.<iv>.<ct||tag>` with AAD = license id. Decrypt sites: fulfilment email, resend, retry sweep.
+- Ed25519 compact DPL tokens. Activate/refresh issue 90-day tokens; disputed refresh is 14 days. Released and revoked devices cannot refresh.
+- Fulfilment is idempotent on `fulfillments.stripe_session_id` (no TTL). Email delivery never rolls back a committed license. CORS is `https://diskprune.com` only.
+- CI jobs 6 (worker tests) and 7 (token/crypto/idempotency). Guardrails reject `Math.random`, `/key-lookup`, and `Access-Control-Allow-Origin: *` in `worker/src`.
+- Native `Licensing/*` and website success-page rewrite are **not** in this change (Phase 5 / Phase 7). Gate 3 is not PASS.
+
 ### Native UI (Phase 3)
 
 - Replaced the placeholder `ContentView` shell with the Design Guide interface: Overview (Storage Autopsy), Cleanup, Snapshots. Scan is a toolbar action. Settings is a native Settings scene.
@@ -11,7 +21,7 @@
 - Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`.
 - Visual QA capture no longer mutates `NSVisualEffectView.canDrawSubviewsIntoLayer` (that hung macos-latest with 0 PNGs). After a `CALayer.render` safety PNG, the live sidebar is recovered with `screencapture -l` from the workflow, `CGWindowListCreateImage`, or the on-screen `NSTableView` cells. The harness does not call `FileManager.removeItem`. Receipt copy is “Empty Trash to permanently remove these items from your Mac.”
 - `destination` is no longer `@Published`. Same-value assigns do not republish.
-- `907e103e` fixed `AutopsyModel` Int64 overflow (`classifiedBytes * w / weightTotal`). Post-scan Overview, Storage sidebar, and live Cleanup render. Gate 4 **PASS** on `2241cbe5` after human review of Visual QA run 33. Phase 4 is not started.
+- `907e103e` fixed `AutopsyModel` Int64 overflow (`classifiedBytes * w / weightTotal`). Post-scan Overview, Storage sidebar, and live Cleanup render. Gate 4 **PASS** on `2241cbe5` after human review of Visual QA run 33.
 
 
 ### Fixes
@@ -24,7 +34,7 @@
 
 - Removed APFS snapshot deletion (`tmutil deletelocalsnapshots`) from the native app. Snapshots are inspect-only via `SnapshotInspector.list()`.
 - Cleanup now has a real plan type: `PlannedItem.init?` (eight conditions) → `CleanupPlan` → `CleanupExecutor.execute(_:)` → `trashItem` only. One failure does not abort the batch.
-- Replaced `Math.random()` license-key generation in the Worker with `crypto.getRandomValues`. Signature verification is still Phase 4.
+- Replaced `Math.random()` license-key generation in the Worker with `crypto.getRandomValues`. Signature verification landed in Phase 4 (`constructEventAsync`).
 
 ### Scanner
 

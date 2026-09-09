@@ -1,4 +1,4 @@
-Last verified commit: `2241cbe5` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 33 SUCCESS, `DONE=ok`, 50 shots, no watchdog). Product fix is `907e103e` (Int64 overflow in `AutopsyModel` share math). Gate 4 human review of the `2241cbe5` artifact: **PASS**. Phase 4 is not started.
+Last verified product commit: `2241cbe5` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 33 SUCCESS, `DONE=ok`, 50 shots, no watchdog). Product fix is `907e103e` (Int64 overflow in `AutopsyModel` share math). Gate 4 human review of the `2241cbe5` artifact: **PASS**. Phase 4 Worker rewrite is in this tree (CI jobs 6–7). Gate 3 is **not** PASS — native token verification is Phase 5.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -8,6 +8,7 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] `web/dist/`, `web/node_modules/`, `worker/.wrangler/...` untracked
 - [x] `build-and-verify.sh` deleted
 - [x] CI jobs 1–5 added
+- [x] CI jobs 6–7 added (Worker tests; licensing token/crypto/idempotency)
 - [x] Guardrails pass locally (`scripts/ci-guardrails.sh`) and on `2241cbe5`
 - [x] `swift build` / `swift test` on macOS — evidence: GitHub Actions CI run 42 on `2241cbe5`
 
@@ -34,8 +35,13 @@ An item is `[x]` only after its acceptance evidence exists.
 
 ## Gate 3 — Licensing
 
-- [ ] Worker rewrite not started
+- [x] Worker rewrite: D1 schema, AES-GCM keys, Ed25519 tokens, Stripe `constructEventAsync`, durable fulfillments PK, no `/key-lookup` (B-12)
+- [x] Worker tests T-WH-01…12, T-ENC-01…05, T-TOK-06/07, T-REF-01…06, T-SEAT-01/02, T-EMAIL-01…04, T-CHK-01/02
 - [x] New UI does not gate on `LicenseManager.isActivated`
+- [ ] Native `Licensing/*` client (Phase 5) — T-KC-*, T-TOK-01…05, T-OFF-*
+- [ ] Live Stripe + production D1/KV ids + Wrangler secrets (owner)
+
+**Gate 3: NOT PASS** — Worker backend is in tree; app-side verification and a live purchase are still required.
 
 ## Gate 4 — Native UX
 

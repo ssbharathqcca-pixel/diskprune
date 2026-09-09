@@ -1,89 +1,69 @@
-function randomSegment(length) {
-  const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  let out = "";
-  for (let i = 0; i < length; i++) {
-    out += alphabet[bytes[i] % alphabet.length];
-  }
-  return out;
+import { handleWebhook } from "./webhook.js";
+import {
+  handleActivate,
+  handleCheckoutStatus,
+  handleRefresh,
+  handleRelease,
+  handleResend,
+} from "./licenses.js";
+import { clientIp, limitIp } from "./ratelimit.js";
+import { retryFailedEmails } from "./email.js";
+
+const DEFAULT_ORIGIN = "https://diskprune.com";
+
+function corsHeaders(env) {
+  const allow = env.CORS_ORIGIN || DEFAULT_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
+}
+
+function withCors(response, env) {
+  const headers = new Headers(response.headers);
+  const extra = corsHeaders(env);
+  for (const [k, v] of Object.entries(extra)) headers.set(k, v);
+  return new Response(response.body, { status: response.status, headers });
 }
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
-
-    // CORS preflight
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
-      });
+      return new Response(null, { status: 204, headers: corsHeaders(env) });
     }
 
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Content-Type": "application/json"
-    };
-
-    if (request.method === 'POST' && url.pathname === '/webhook') {
-      try {
-        const payload = await request.json();
-        if (payload.type === 'checkout.session.completed') {
-          const session = payload.data.object;
-          const email = session.customer_details?.email || 'unknown';
-          const sessionId = session.id;
-
-          const licenseKey = `PRUNE-${randomSegment(4)}-${randomSegment(4)}-${randomSegment(4)}`;
-
-          // Store in KV
-          await env.LICENSES.put(licenseKey, JSON.stringify({ email, active: true }));
-
-          // Store session mapping so the success page can retrieve it later
-          await env.LICENSES.put(`session:${sessionId}`, JSON.stringify({ licenseKey }));
-
-          return new Response(JSON.stringify({ received: true }), { status: 200, headers: corsHeaders });
-        }
-        return new Response(JSON.stringify({ received: true }), { status: 200, headers: corsHeaders });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: corsHeaders });
+    let response;
+    if (request.method === "POST" && url.pathname === "/webhook") {
+      response = await handleWebhook(request, env);
+    } else if (request.method === "POST" && url.pathname === "/v1/licenses/activate") {
+      response = await handleActivate(request, env);
+    } else if (request.method === "POST" && url.pathname === "/v1/licenses/refresh") {
+      response = await handleRefresh(request, env);
+    } else if (request.method === "POST" && url.pathname === "/v1/licenses/release") {
+      response = await handleRelease(request, env);
+    } else if (request.method === "POST" && url.pathname === "/v1/licenses/resend") {
+      response = await handleResend(request, env);
+    } else if (request.method === "GET" && url.pathname.startsWith("/v1/checkout/") && url.pathname.endsWith("/status")) {
+      const ip = clientIp(request);
+      if (!(await limitIp(env, "checkout-status", ip, 30)).ok) {
+        response = new Response(JSON.stringify({ error: "RATE_LIMIT" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        const sessionId = url.pathname.slice("/v1/checkout/".length, -"/status".length);
+        response = await handleCheckoutStatus(sessionId, env);
       }
+    } else {
+      response = new Response("Not Found", { status: 404 });
     }
+    return withCors(response, env);
+  },
 
-    if (request.method === 'POST' && url.pathname === '/v1/licenses/activate') {
-      try {
-        const { license_key } = await request.json();
-        const data = await env.LICENSES.get(license_key);
-
-        if (data) {
-          const license = JSON.parse(data);
-          if (license.active) {
-            return new Response(JSON.stringify({ valid: true }), { status: 200, headers: corsHeaders });
-          }
-        }
-        return new Response(JSON.stringify({ valid: false, error: "Invalid key" }), { status: 400, headers: corsHeaders });
-      } catch (err) {
-        return new Response(JSON.stringify({ valid: false, error: "Invalid request" }), { status: 400, headers: corsHeaders });
-      }
-    }
-
-    if (request.method === 'GET' && url.pathname === '/key-lookup') {
-      const sessionId = url.searchParams.get('session_id');
-      if (!sessionId) {
-        return new Response(JSON.stringify({ error: "Missing session_id" }), { status: 400, headers: corsHeaders });
-      }
-
-      const sessionData = await env.LICENSES.get(`session:${sessionId}`);
-      if (sessionData) {
-        const { licenseKey } = JSON.parse(sessionData);
-        return new Response(JSON.stringify({ license_key: licenseKey }), { status: 200, headers: corsHeaders });
-      }
-      return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: corsHeaders });
-    }
-
-    return new Response("Not Found", { status: 404 });
+  async scheduled(_event, env) {
+    await retryFailedEmails(env);
   },
 };

@@ -96,6 +96,14 @@ if [[ -d "$WORKER_SRC" ]]; then
     grep -RIn 'Math\.random' "$WORKER_SRC" >&2 || true
     fail "Math.random is prohibited in worker/src (use crypto.getRandomValues)"
   fi
+  if grep -RIn 'key-lookup' "$WORKER_SRC" >/dev/null 2>&1; then
+    grep -RIn 'key-lookup' "$WORKER_SRC" >&2 || true
+    fail "GET /key-lookup is prohibited (B-12)"
+  fi
+  if grep -RInE 'Access-Control-Allow-Origin["'\'']?[[:space:]]*[:=][[:space:]]*["'\'']\*["'\'']' "$WORKER_SRC" >/dev/null 2>&1; then
+    grep -RInE 'Access-Control-Allow-Origin' "$WORKER_SRC" >&2 || true
+    fail "CORS must never be * (https://diskprune.com only)"
+  fi
 fi
 
 # Terminology contract (Correction 1) — only once those views exist

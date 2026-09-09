@@ -17,9 +17,8 @@ Honest list. Do not hide these in marketing.
 ## Baseline defects still present until later phases
 
 - Legacy `ScannerActor.trash(urls:)`, `ContentView`, and `SafetyRules` removed after the new UI was CI-green (Rule 18).
-- `LicenseManager.isActivated` still treats any Keychain item as licensed (B-11). The new UI does not consult it.
-- Worker webhook still has no Stripe signature verification (B-12). `Math.random` has been removed; the rest of the worker rewrite is Phase 4.
-- `GET /key-lookup` still returns a license key (B-12). It will be removed in the worker rewrite, not papered over.
+- `LicenseManager.isActivated` still treats any Keychain item as licensed (B-11). The new UI does not consult it. Real tokens are Phase 5.
+- Worker B-12 is fixed in source: Stripe `constructEventAsync`, D1 idempotent fulfillments, encrypted keys, no `GET /key-lookup`. Production deploy still needs owner-held D1/KV ids and Wrangler secrets.
 - Website success page in `site/` still fabricates keys (B-13). `site/` is deleted only in commit 7.7 after the Astro port is verified.
 - Release pipeline is still ad-hoc signed, arm64-only (Phase 6).
 - This Linux builder cannot compile Swift, sign, or notarize.

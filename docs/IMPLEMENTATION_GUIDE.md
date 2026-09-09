@@ -7,7 +7,7 @@
 - `scripts/validate-rules.mjs` — schema and handoff constraints
 - `scripts/ci-guardrails.sh` — destructive-API and architecture greps
 - `app/Sources/DiskPrune` — native code, one SPM executable + tests
-- `worker/` — licensing (Phase 4 rewrite still pending)
+- `worker/` — licensing backend (Phase 4). D1 + KV rate limits + Stripe-verified webhooks. Native client is Phase 5.
 - `site/` — current preview website (delete only after `web/` port, commit 7.7)
 
 ## Native pipeline
@@ -18,11 +18,27 @@
 
 `CleanupExecutor.execute(_:)` takes a `CleanupPlan` only (DEC-008). Per item: seven TOCTOU checks, then `trashItem`. Failures never abort the batch. There is no `removeItem` fallback.
 
+## Worker (Phase 4)
+
+`worker/src/` is the licensing Worker. Tests use Node 22 `node:sqlite` (`--experimental-sqlite`) as a D1 stand-in. The only production npm dependency is `stripe`.
+
+```bash
+cd worker
+npm ci
+npm test                  # all worker tests
+npm run test:licensing    # T-ENC / T-TOK / T-WH
+```
+
+`wrangler.toml` has placeholder D1 and KV ids. Owner must create the database and namespace, `wrangler secret put` the keys listed in that file, and apply `migrations/0001_init.sql`. Do not commit secrets.
+
+`GET /key-lookup` is gone. Checkout status never returns a key.
+
 ## Running checks
 
 ```bash
 node scripts/validate-rules.mjs
 bash scripts/sync-rules.sh
 bash scripts/ci-guardrails.sh
+cd worker && npm test
 cd app && swift test   # macOS
 ```
