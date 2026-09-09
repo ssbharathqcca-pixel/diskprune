@@ -5,7 +5,11 @@ struct StorageAutopsyView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Group {
+        let _ = VisualQARuntime.probe(
+            "StorageAutopsyView",
+            extra: "phase=\(String(describing: session.phase)) coverage=\(session.coverage != nil)"
+        )
+        return Group {
             if session.phase == .idle && session.coverage == nil {
                 firstLaunch
             } else if let coverage = session.coverage {

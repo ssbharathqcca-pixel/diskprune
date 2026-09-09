@@ -10,7 +10,11 @@ struct RootView: View {
     }
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        let _ = VisualQARuntime.probe(
+            "RootView",
+            extra: "dest=\(session.destination.id) phase=\(String(describing: session.phase)) coverage=\(session.coverage != nil) items=\(session.items.count)"
+        )
+        return NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebar
                 .navigationSplitViewColumnWidth(min: Geometry.sidebarMin, ideal: Geometry.sidebarWidth, max: Geometry.sidebarMax)
         } detail: {
