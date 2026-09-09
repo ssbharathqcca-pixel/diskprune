@@ -26,7 +26,7 @@ enum TestSupport {
         objectType: ObjectType = .directory,
         displayName: String = "test",
         onDiskBytes: Int64 = 100,
-        category: Category = .applicationCache,
+        category: DiskPrune.Category = .applicationCache,
         safety: SafetyLevel = .safe,
         knowledgeID: String? = "user-caches",
         cleanupRoot: URL? = nil,
