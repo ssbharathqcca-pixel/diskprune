@@ -1,4 +1,4 @@
-Last verified commit: `8b44f0b5` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 24 SUCCESS-with-watchdog). `8b44f0b5` dest=Cleanup before ingest: HatchSegment + idle Autopsy hosted; live hang still inside `waitForLayout` after ingest (no RootView probe). Gate 4 remains NOT PASS. Post-ingest Storage-section isolation is in flight.
+Last verified commit: `122a0a47` (CI jobs 1–5 GREEN; Visual QA run 25 SUCCESS-with-watchdog). `122a0a47` omitStorage + dest=Cleanup still hung inside `autopsy()` with coverage (RootView stayed at 13; last probe StorageAutopsyView n=19). Isolated Canvas hatch and idle Autopsy laid out. Storage-insert hypothesis disproven. Hatch is now a `Shape` overlay (PART 5.6 unchanged). Gate 4 remains NOT PASS. Phase 4 is not started.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -47,8 +47,8 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Protected/advanced have no checkbox
 - [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
 - [x] CI screenshot workflow of the packaged app (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
-- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (hosted idle Autopsy works; hosted autopsy-with-data and live ingest hang on `8b44f0b5`)
-- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED** (`8b44f0b5` hung in `waitForLayout` after dest=Cleanup ingest; HatchSegment/idle Autopsy hosted)
+- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (idle Autopsy works; `autopsy()` with coverage hung on `122a0a47` Canvas hatch)
+- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED** (`122a0a47` hung in `autopsy()` after dest=Cleanup ingest even with Storage omitted)
 - [x] Sidebar `NSVisualEffectView` vibrancy in CI shots — **01/02 recovered on `30873fdd` via `screencapture -l`** (human still must review)
 - [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
 - [ ] Human review of CI screenshots — **NOT TESTED**

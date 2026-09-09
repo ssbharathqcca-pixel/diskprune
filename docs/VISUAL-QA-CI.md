@@ -7,7 +7,7 @@ A human still has to look at the screenshots (and, when possible, a real Mac). C
 
 **Receipt (P0):** copy is “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 and the guardrail ban `reclaim` in `ReceiptView` / `CleanupPlanView`.
 
-**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). `8d4d1d56` stopped same-value `@Published` writeback; Visual QA then showed **exactly 7** `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. `8b44f0b5` set dest=Cleanup *before* ingest: HatchSegment and idle Autopsy hosted; live hang still at `waitForLayout begin` with no further RootView probe. Remaining candidate: `SwiftUIOutlineListView` inserting the Storage section. Catalog now omits Storage, captures live Cleanup, then re-enables Storage on a new List identity. Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
+**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). `8d4d1d56` stopped same-value `@Published` writeback; Visual QA then showed **exactly 7** `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. `8b44f0b5` dest=Cleanup before ingest: HatchSegment and idle Autopsy hosted; live hang still at `waitForLayout begin` with no further RootView probe. `122a0a47` omitStorage + dest=Cleanup **still hung**. Last probe: `StorageAutopsyView n=19 phase=ready coverage=true` (RootView stayed at 13). Isolated Canvas hatch (explicit 240×12 frame) and idle Autopsy laid out. Trigger is `autopsy()` with coverage — Canvas `HatchSegment` sized by `SegmentStack` inside Autopsy's `ScrollView`. Hatch is now a `Shape` overlaid on a size-taking `Rectangle` (PART 5.6 unchanged). Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
 
 Related:
 
@@ -43,6 +43,12 @@ A 200-second watchdog writes `COMPLETE` if a later shot hangs, so CI can still u
 ---
 
 ## Latest inspected artifacts
+
+### `122a0a47` run 25 — [34299516814](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34299516814)
+
+Artifact: [visual-qa-122a0a47ad9f7489ca765e1518c8d10c85dbb763](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34299516814/artifacts/10084532651)
+
+**Isolation result.** omitStorage=true dest=Cleanup ingest still hung (~5 min watchdog). ingest complete, publishes=7, RootView stayed at probe 13, then `post-ingest-spin begin` → `StorageAutopsyView n=19 phase=ready coverage=true`. Autopsy stayed mounted (`@ObservedObject`) and `autopsy()` ran on the ingest publishes before RootView could swap to ResultsView. Isolated Canvas hatch laid out (blank PNG skip). Idle Autopsy captured. Storage-section-insert hypothesis **disproven**. Remaining candidate: Canvas `HatchSegment` as a `SegmentStack` child inside Autopsy `ScrollView` (fixture notExamined ≈ 76% of the bar). This commit replaces that Canvas with a `Shape` overlay. 03/09 remain **NOT TESTED**.
 
 ### `8b44f0b5` run 24 — [34298560795](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34298560795)
 
@@ -103,7 +109,7 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
-- Overview / Autopsy with data (`03`, `09`) — **NOT TESTED.** Hosted `StorageAutopsyView` hung at `NSHostingView.contentView` (`30873fdd`). Live `ingestScan` returns, then hangs in the next RunLoop spin even with destination=Cleanup *before* ingest (`8b44f0b5`). HatchSegment and idle Autopsy hosted. Remaining candidate: coverage-driven Storage section in `SwiftUIOutlineListView`. Catalog now omits Storage, then re-enables it on a new List identity so the 01/02 sidebar shots still upload.
+- Overview / Autopsy with data (`03`, `09`) — **NOT TESTED.** Hosted `StorageAutopsyView` hung at `NSHostingView.contentView` (`30873fdd`). Live `ingestScan` returns, then hangs in the next RunLoop spin. `122a0a47` omitStorage + dest=Cleanup still hung at `autopsy()` with coverage (Canvas hatch in `SegmentStack`/`ScrollView`). Isolated framed hatch and idle Autopsy laid out. Hatch is now a `Shape`; 03/09 wait on the next Visual QA run.
 - Settings tab chrome in the hosted 520×360 pane
 - Window-server chrome (traffic lights / titlebar) on contentView layer shots
 - Canvas composition fidelity (Claude artifact login)

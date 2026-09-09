@@ -61,4 +61,18 @@ final class CoveragePresentationTests: XCTestCase {
         XCTAssertEqual(model.permissionPathCount, 1)
         XCTAssertTrue(model.isPartial)
     }
+
+    func testHatchPathIsFiniteForBarAndLegend() {
+        let bar = HatchLines().path(in: CGRect(x: 0, y: 0, width: 620, height: 12))
+        XCTAssertFalse(bar.isEmpty)
+        XCTAssertTrue(bar.boundingBox.width.isFinite)
+        XCTAssertTrue(bar.boundingBox.height.isFinite)
+        let legend = HatchLines().path(in: CGRect(x: 0, y: 0, width: 12, height: 8))
+        XCTAssertFalse(legend.isEmpty)
+        XCTAssertTrue(legend.boundingBox.width.isFinite)
+        let empty = HatchLines().path(in: .zero)
+        XCTAssertTrue(empty.isEmpty)
+        let inf = HatchLines().path(in: CGRect(x: 0, y: 0, width: CGFloat.infinity, height: 12))
+        XCTAssertTrue(inf.isEmpty)
+    }
 }

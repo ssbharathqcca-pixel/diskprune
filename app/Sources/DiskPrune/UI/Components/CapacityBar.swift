@@ -121,30 +121,47 @@ private struct SegmentStack: Layout {
     }
 }
 
+/// 45° lines at 4pt pitch. A `Shape` takes the parent's proposed size;
+/// `Canvas` reports a flexible intrinsic size and hung macos-latest when
+/// `SegmentStack` placed it as the not-examined bar segment inside Autopsy's
+/// `ScrollView` (`122a0a47`: idle Autopsy + framed hatch laid out; `autopsy()`
+/// with coverage did not).
+struct HatchLines: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard rect.width.isFinite, rect.height.isFinite,
+              rect.width > 0, rect.height > 0 else { return path }
+        let width = min(rect.width, 4096)
+        let height = min(rect.height, 4096)
+        var x: CGFloat = -height
+        var steps = 0
+        while x < width + height && steps < 3_000 {
+            path.move(to: CGPoint(x: x, y: height))
+            path.addLine(to: CGPoint(x: x + height, y: 0))
+            x += 4
+            steps += 1
+        }
+        return path
+    }
+}
+
 /// Unfilled hatch: separator 1pt stroke, 45° hatch at 20% tertiaryLabel, 4pt pitch (PART 5.6).
+/// Layout is the filled `Rectangle` (takes the parent's proposed size). Hatch lines
+/// are paint in an overlay so the path bounding box cannot fight `SegmentStack`
+/// or Autopsy's `ScrollView`. `Canvas` as the layout root hung macos-latest
+/// (`122a0a47`: idle Autopsy + framed hatch laid out; `autopsy()` with coverage did not).
 struct HatchSegment: View {
     var body: some View {
-        Canvas { context, size in
-            guard size.width.isFinite, size.height.isFinite,
-                  size.width > 0, size.height > 0 else { return }
-            let width = min(size.width, 4096)
-            let height = min(size.height, 4096)
-            let hatch = Color(nsColor: .tertiaryLabelColor).opacity(0.2)
-            var x: CGFloat = -height
-            var steps = 0
-            while x < width + height && steps < 3_000 {
-                var path = Path()
-                path.move(to: CGPoint(x: x, y: height))
-                path.addLine(to: CGPoint(x: x + height, y: 0))
-                context.stroke(path, with: .color(hatch), lineWidth: 1)
-                x += 4
-                steps += 1
+        Rectangle()
+            .fill(Color(nsColor: .controlBackgroundColor))
+            .overlay {
+                HatchLines()
+                    .stroke(Color(nsColor: .tertiaryLabelColor).opacity(0.2), lineWidth: 1)
             }
-        }
-        .background(Color(nsColor: .controlBackgroundColor))
-        .overlay(
-            Rectangle()
-                .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1)
-        )
+            .clipShape(Rectangle())
+            .overlay(
+                Rectangle()
+                    .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 1)
+            )
     }
 }

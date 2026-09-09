@@ -27,6 +27,9 @@ struct StorageAutopsyView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Do not reuse the idle ScrollView identity for autopsy-with-data.
+        // ingestScan publishes into an already-mounted Autopsy (`122a0a47`).
+        .id(session.coverage == nil ? "autopsy-idle" : "autopsy-ready")
     }
 
     private var firstLaunch: some View {
@@ -61,6 +64,10 @@ struct StorageAutopsyView: View {
             cancelled: session.scanCancelled
         )
         let prefix = model.isPartial ? "at least " : ""
+        let _ = VisualQARuntime.probe(
+            "autopsy-ready",
+            extra: "notExamined=\(model.notExaminedBytes) shares=\(model.categoryShares.count)"
+        )
         return ScrollView {
             VStack(alignment: .leading, spacing: Geometry.sectionSpacing) {
                 volumeHeader(used: model.volumeUsedBytes, available: model.volumeAvailableBytes)
