@@ -1,4 +1,4 @@
-Last verified product commit: `2241cbe5` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 33 SUCCESS, `DONE=ok`, 50 shots, no watchdog). Product fix is `907e103e` (Int64 overflow in `AutopsyModel` share math). Gate 4 human review of the `2241cbe5` artifact: **PASS**. Phase 4 Worker rewrite is in this tree (CI jobs 6–7). Gate 3 is **not** PASS — native token verification is Phase 5.
+Last verified product commit: `6f3a11f6` (Phase 4 Worker). Phase 5 native licensing is in this tree. Gate 4 remains **PASS** on `2241cbe5`. Gate 3 is **not** PASS — production D1/KV/signing secrets and a live Stripe purchase are still required.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -37,11 +37,12 @@ An item is `[x]` only after its acceptance evidence exists.
 
 - [x] Worker rewrite: D1 schema, AES-GCM keys, Ed25519 tokens, Stripe `constructEventAsync`, durable fulfillments PK, no `/key-lookup` (B-12)
 - [x] Worker tests T-WH-01…12, T-ENC-01…05, T-TOK-06/07, T-REF-01…06, T-SEAT-01/02, T-EMAIL-01…04, T-CHK-01/02
-- [x] New UI does not gate on `LicenseManager.isActivated`
-- [ ] Native `Licensing/*` client (Phase 5) — T-KC-*, T-TOK-01…05, T-OFF-*
+- [x] Scan / autopsy / explanations do not consult `LicenseManager` (T-OFF-07)
+- [x] Native `Licensing/*` client — B-11 fixed; T-KC-01/02, T-DEV-01/02, T-TOK-01…07, T-OFF-01…05/07
 - [ ] Live Stripe + production D1/KV ids + Wrangler secrets (owner)
+- [ ] `PublicKeys.k1Base64` replaced with the deployed `LICENSE_SIGNING_PUB_K1` (owner)
 
-**Gate 3: NOT PASS** — Worker backend is in tree; app-side verification and a live purchase are still required.
+**Gate 3: NOT PASS** — Worker and native client are in tree. Production secrets, a matching k1 public key, and a live purchase are still required. B-13 (`site/` success page) is Phase 7.
 
 ## Gate 4 — Native UX
 

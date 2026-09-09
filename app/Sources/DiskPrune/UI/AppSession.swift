@@ -72,9 +72,11 @@ final class AppSession: ObservableObject {
     private var scanTask: Task<Void, Never>?
     private var executeTask: Task<Void, Never>?
     private var engine: ScanEngine?
+    private let licenseOverride: LicenseManager?
 
-    init(knowledge: StorageKnowledge) {
+    init(knowledge: StorageKnowledge, license: LicenseManager? = nil) {
         self.knowledge = knowledge
+        self.licenseOverride = license
         if let volume = VolumeProbe.home() {
             volumeName = volume.name
             preScanTotal = volume.total
@@ -82,6 +84,13 @@ final class AppSession: ObservableObject {
             preScanUsed = volume.used
         }
     }
+
+    /// Scan, autopsy, and planning never read this. Cleanup execute does.
+    var license: LicenseManager { licenseOverride ?? LicenseManager.shared }
+
+    var canClean: Bool { license.canClean }
+
+    var cleanupBlockedMessage: String { license.cleanupBlockedMessage }
 
     /// `List(selection:)` on this SDK takes `Binding<SelectionValue>` (the
     /// original `$session.destination` overload). A `Binding<SelectionValue?>`
@@ -199,6 +208,7 @@ final class AppSession: ObservableObject {
 
     func confirmMoveToTrash() {
         guard let plan = currentPlan else { return }
+        guard canClean else { return }
         showDryRun = false
         phase = .executing
         executeDone = 0

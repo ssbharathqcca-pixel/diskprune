@@ -46,13 +46,19 @@ struct DryRunSheet: View {
                     .font(.callout.weight(.medium))
             }
 
+            if !session.canClean {
+                Text(session.cleanupBlockedMessage)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
             HStack {
                 Spacer()
                 Button("Cancel") { session.showDryRun = false }
                     .keyboardShortcut(.cancelAction)
                 Button("Move to Trash") { session.confirmMoveToTrash() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(plan == nil)
+                    .disabled(plan == nil || !session.canClean)
             }
         }
         .padding(Geometry.sectionSpacing)

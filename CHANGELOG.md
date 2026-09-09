@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Native licensing (Phase 5)
+
+- Deleted top-level `LicenseManager.swift` (B-11: `isActivated` was true if any Keychain item existed).
+- Added `Licensing/{PublicKeys,LicenseToken,DeviceIdentity,KeychainStore,LicenseManager}.swift`. Cleanup entitlement is a verified Ed25519 DPL token with `ent` containing `"cleanup"`. Keychain presence grants nothing (`kSecAttrService = com.diskprune.app`, `AfterFirstUnlockThisDeviceOnly`).
+- Device identity is a random UUID. No hardware identifiers.
+- Activate / refresh / release match the Phase 4 Worker contract. Refresh ignores local `exp` (expired-but-valid tokens renew). Released/revoked refresh is stored as an end-reason; cleanup stays available until `exp`.
+- Offline: valid token works up to 90 days; expired token disables cleanup only, with “DiskPrune needs to check your license. Connect to the internet.” Clock rollback fails open for 7 days.
+- Licence settings tab wires activation, status, this-Mac release, and seat-limit device list. Scan, autopsy, and planning do not consult `LicenseManager`. `confirmMoveToTrash` requires `canClean`.
+- Native tests: T-TOK-01…07, T-KC-01/02, T-DEV-01/02, T-OFF-01…05/07, activate/seat-limit/refresh end-states.
+
 ### Licensing backend (Phase 4)
 
 - Rewrote `worker/` onto D1 + KV rate limits. Stripe webhooks use `constructEventAsync` with `SubtleCryptoProvider`. Unsigned `POST /webhook` is `400` and writes nothing (B-12).
@@ -10,7 +20,7 @@
 - Ed25519 compact DPL tokens. Activate/refresh issue 90-day tokens; disputed refresh is 14 days. Released and revoked devices cannot refresh.
 - Fulfilment is idempotent on `fulfillments.stripe_session_id` (no TTL). Email delivery never rolls back a committed license. CORS is `https://diskprune.com` only.
 - CI jobs 6 (worker tests) and 7 (token/crypto/idempotency). Guardrails reject `Math.random`, `/key-lookup`, and `Access-Control-Allow-Origin: *` in `worker/src`.
-- Native `Licensing/*` and website success-page rewrite are **not** in this change (Phase 5 / Phase 7). Gate 3 is not PASS.
+- Website success-page rewrite is Phase 7 (B-13). Gate 3 is not PASS until production keys and a live purchase.
 
 ### Native UI (Phase 3)
 

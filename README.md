@@ -84,8 +84,11 @@ email only — never a key or token.
 | `POST /v1/licenses/resend` | Always `200 {ok:true}` (no enumeration) |
 | `GET /v1/checkout/:id/status` | Status only |
 
-The native app does not yet verify tokens (Phase 5). Production D1/KV ids and
-Wrangler secrets are owner-held and are not in this repository.
+The native app verifies Ed25519 DPL tokens locally (`Licensing/`). Cleanup
+requires a verified `cleanup` entitlement. Scanning, autopsy, and explanations
+do not consult `LicenseManager`. Production D1/KV ids, Wrangler secrets, and
+the deployed `LICENSE_SIGNING_PUB_K1` (must replace `PublicKeys.k1Base64`) are
+owner-held and are not in this repository.
 
 Worker tests (Node 22, `--experimental-sqlite`):
 

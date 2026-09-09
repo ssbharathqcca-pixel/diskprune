@@ -8,7 +8,7 @@ struct SettingsRootView: View {
         TabView {
             GeneralSettingsView()
                 .tabItem { Label("General", systemImage: "gearshape") }
-            LicenseView()
+            LicenseView(manager: .shared)
                 .tabItem { Label("Licence", systemImage: "key") }
             AdvancedSettingsView(knowledge: knowledge)
                 .tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }

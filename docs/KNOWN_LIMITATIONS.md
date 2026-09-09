@@ -17,8 +17,9 @@ Honest list. Do not hide these in marketing.
 ## Baseline defects still present until later phases
 
 - Legacy `ScannerActor.trash(urls:)`, `ContentView`, and `SafetyRules` removed after the new UI was CI-green (Rule 18).
-- `LicenseManager.isActivated` still treats any Keychain item as licensed (B-11). The new UI does not consult it. Real tokens are Phase 5.
+- B-11 is fixed: cleanup entitlement requires a verified DPL token. A Keychain item is not a license.
 - Worker B-12 is fixed in source: Stripe `constructEventAsync`, D1 idempotent fulfillments, encrypted keys, no `GET /key-lookup`. Production deploy still needs owner-held D1/KV ids and Wrangler secrets.
+- `PublicKeys.k1Base64` is a placeholder Ed25519 public key. Owner must replace it with the deployed `LICENSE_SIGNING_PUB_K1` before a signed release. The matching private key is a Wrangler secret and is not in this repository.
 - Website success page in `site/` still fabricates keys (B-13). `site/` is deleted only in commit 7.7 after the Astro port is verified.
 - Release pipeline is still ad-hoc signed, arm64-only (Phase 6).
 - This Linux builder cannot compile Swift, sign, or notarize.

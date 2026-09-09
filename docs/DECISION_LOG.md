@@ -71,10 +71,19 @@ Append-only. Record decisions actually made during implementation.
 ## DEC-009 — New UI does not consult LicenseManager
 
 - Date: 2026-09-08
-- Status: accepted
-- Decision: Phase 3 UI never reads `LicenseManager.isActivated`. Scan, explain, and cleanup planning stay available. The Licence settings tab is a non-activating shell. Real tokens are Phase 5.
-- Rationale: T-OFF-07 / Builder Rule 8. The existing manager treats Keychain presence as licensed (B-11).
-- Rejected: Wiring the placeholder license sheet to the new cleanup path.
+- Status: accepted; amended Phase 5
+- Decision: Scan, explain, and cleanup *planning* never read `LicenseManager`. The Licence settings tab is the activation UI. Phase 5 gates only `confirmMoveToTrash` on `canClean` (verified token).
+- Rationale: T-OFF-07 / Builder Rule 8. The free tier has no code path through `LicenseManager`.
+- Rejected: Treating Keychain presence as licensed (B-11). Wiring the placeholder license sheet to the new cleanup path in Phase 3.
+
+## DEC-013 — Entitlement is a verified DPL token
+
+- Date: 2026-09-09
+- Status: accepted (Phase 5)
+- Decision: `LicenseManager.canClean` is `entitlements.contains("cleanup")` after `LicenseToken.verify`. Dummy Keychain items, including the old `DiskPruneLicense` account, grant nothing. Tampered / wrong-device tokens are deleted. Expired tokens stay stored for `/refresh`. Clock rollback fails open for 7 days, then disables cleanup only.
+- Rejected: `isActivated` as `SecItemCopyMatching` success.
+- Consequences: Production `PublicKeys.k1` must match Worker `LICENSE_SIGNING_PUB_K1` before a signed release.
+
 
 ## DEC-010 — Receipt UI has three accounting lines
 

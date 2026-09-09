@@ -6,6 +6,8 @@ struct DiskPruneApp: App {
     init() {
         if VisualQARuntime.isEnabled {
             PreferencesStore.scanOnLaunch = false
+        } else {
+            LicenseManager.shared.start()
         }
         VisualQARuntime.trace("DiskPruneApp.init enabled=\(VisualQARuntime.isEnabled)")
     }
