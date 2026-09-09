@@ -10,7 +10,7 @@
 - Snapshots are inspect-only. No delete affordance and no snapshot-deletion command in the UI.
 - Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`. Gate 4 remains NOT PASS.
 - Visual QA capture no longer mutates `NSVisualEffectView.canDrawSubviewsIntoLayer` (that hung macos-latest with 0 PNGs). After a `CALayer.render` safety PNG, the live sidebar is recovered with `screencapture -l` from the workflow, `CGWindowListCreateImage`, or the on-screen `NSTableView` cells. The harness does not call `FileManager.removeItem`. Receipt copy is “Empty Trash to permanently remove these items from your Mac.” Gate 4 remains NOT PASS.
-- `CapacityBar` no longer uses a `GeometryReader` (overlay or otherwise). Hosted `StorageAutopsyView` still hung `30873fdd` at `NSHostingView.contentView` assignment. The bar now uses a `Layout` for proportional segments; hatch pitch/colours are unchanged. Autopsy shots are taken from the live `RootView` with `screencapture -l` (the path that recovered the 01/02 sidebar). Gate 4 remains NOT PASS.
+- Visual QA does not ingestScan into the live `RootView` and does not host `StorageAutopsyView`. `1ecd789b` showed ingestScan returns, then the next RunLoop spin hangs even with destination=Cleanup (sidebar Storage section). `30873fdd` recovered 01/02 sidebar via `screencapture -l`. Gate 4 remains NOT PASS.
 
 
 ### Fixes

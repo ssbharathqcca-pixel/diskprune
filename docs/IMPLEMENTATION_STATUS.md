@@ -47,8 +47,8 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Protected/advanced have no checkbox
 - [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
 - [x] CI screenshot workflow of the packaged app (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
-- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (`30873fdd` hung on hosted `StorageAutopsyView` at contentView assignment)
-- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED**
+- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (hosted autopsy hangs at contentView; live ingest hangs on sidebar Storage section even at Cleanup)
+- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED** (`1ecd789b` hung in RunLoop spin after ingest returned)
 - [x] Sidebar `NSVisualEffectView` vibrancy in CI shots — **01/02 recovered on `30873fdd` via `screencapture -l`** (human still must review)
 - [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
 - [ ] Human review of CI screenshots — **NOT TESTED**

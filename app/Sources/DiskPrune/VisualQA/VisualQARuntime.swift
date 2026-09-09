@@ -175,8 +175,6 @@ private enum VisualQACatalog {
         // Autopsy — hosted StorageAutopsyView has hung the runner after the light pass.
         let empty = AppSession(knowledge: knowledge)
         ingestEmpty(empty)
-        let partialSession = AppSession(knowledge: knowledge)
-        ingest(partialSession, partial: true)
 
         for dark in [false, true] {
             applyAppearance(dark)
@@ -199,42 +197,14 @@ private enum VisualQACatalog {
         try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
         VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
 
-        // Do not host StorageAutopsyView. 30873fdd hung at
-        // `window.contentView = hosting` after "hosting constructed"
-        // (overlay GeometryReader was not enough). Drive the already-on-screen
-        // RootView and capture with screencapture -l, which recovered 01/02.
-        VisualQARuntime.trace("live ingest overview (not hosted StorageAutopsyView)")
-        ingest(live, partial: false)
-        live.inspectorOpen = false
-        // Storage sidebar appears as soon as coverage exists. Point detail at
-        // Cleanup first (hosted ResultsView already works) so we can tell
-        // whether the hang is the sidebar Storage section or autopsy().
-        live.destination = .cleanup
-        VisualQARuntime.trace("live ingest complete items=\(live.items.count) coverage=\(live.coverage != nil) dest=cleanup")
-        spin(0.7)
-        VisualQARuntime.trace("post-ingest cleanup laid out")
-        applyAppearance(false)
-        attemptLive(window, screen: "05c-live-cleanup", dark: false, size: wide, fixture: true)
-
-        live.destination = .overview
-        VisualQARuntime.trace("switching live destination to overview")
-        spin(0.7)
-        VisualQARuntime.trace("post-ingest overview laid out")
-        for dark in [false, true] {
-            applyAppearance(dark)
-            attemptLive(window, screen: "03-overview-autopsy", dark: dark, size: wide, fixture: true)
-        }
-
-        VisualQARuntime.trace("live ingest partial overview")
-        ingest(live, partial: true)
-        live.destination = .overview
-        VisualQARuntime.trace("live partial ingest complete permissionPaths=\(live.coverage?.permissionLimitedPaths.count ?? -1)")
-        spin(0.7)
-        VisualQARuntime.trace("post-partial overview laid out")
-        for dark in [false, true] {
-            applyAppearance(dark)
-            attemptLive(window, screen: "09-overview-partial", dark: dark, size: wide, fixture: true)
-        }
+        // Do not ingestScan into the live RootView and do not host
+        // StorageAutopsyView:
+        // - 30873fdd hosted autopsy hung at NSHostingView.contentView
+        // - 0cd1fb83 ingestScan returned, then hung in the next RunLoop spin
+        // - 1ecd789b dest=cleanup still hung in that spin → sidebar Storage
+        //   section (coverage-driven List mutation), not only autopsy()
+        limitations.append("03/09 NOT TESTED: live ingest hangs on sidebar Storage section; hosted StorageAutopsyView hangs at contentView assignment")
+        VisualQARuntime.trace("skip live ingest / hosted autopsy (known hangs)")
     }
 
     private static func ingest(_ session: AppSession, partial: Bool) {

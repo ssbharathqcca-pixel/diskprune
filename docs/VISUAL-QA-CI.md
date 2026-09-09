@@ -97,8 +97,7 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
-- Overview / Autopsy with data (`03`, `09`) — hosted `StorageAutopsyView` hung `30873fdd` at contentView assignment; live `ingestScan` + `screencapture` is the next attempt and **not yet proven**
-- Live `RootView` after `ingestScan` (sidebar Storage section + in-window category/cleanup chrome)
+- Overview / Autopsy with data (`03`, `09`) — **NOT TESTED.** Hosted `StorageAutopsyView` hung at `NSHostingView.contentView` (`30873fdd`). Live `ingestScan` returns, then hangs in the next RunLoop spin even with destination=Cleanup (`1ecd789b`) — the coverage-driven sidebar Storage section, not only autopsy. Catalog now skips both so the 01/02 sidebar shots still upload.
 - Settings tab chrome in the hosted 520×360 pane
 - Window-server chrome (traffic lights / titlebar) on contentView layer shots
 - Canvas composition fidelity (Claude artifact login)
