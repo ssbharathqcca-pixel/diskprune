@@ -7,7 +7,7 @@ A human still has to look at the screenshots (and, when possible, a real Mac). C
 
 **Receipt (P0):** copy is “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 and the guardrail ban `reclaim` in `ReceiptView` / `CleanupPlanView`.
 
-**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). `8d4d1d56` stopped same-value `@Published` writeback; Visual QA then showed **exactly 7** `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. `8b44f0b5` dest=Cleanup before ingest: HatchSegment and idle Autopsy hosted; live hang still at `waitForLayout begin` with no further RootView probe. `122a0a47` omitStorage + dest=Cleanup **still hung**. Last probe: `StorageAutopsyView n=19 phase=ready coverage=true` (RootView stayed at 13). Isolated Canvas hatch (explicit 240×12 frame) and idle Autopsy laid out. Trigger is `autopsy()` with coverage — Canvas `HatchSegment` sized by `SegmentStack` inside Autopsy's `ScrollView`. Hatch is now a `Shape` overlaid on a size-taking `Rectangle` (PART 5.6 unchanged). Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
+**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). `8d4d1d56` stopped same-value `@Published` writeback; Visual QA then showed **exactly 7** `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. `122a0a47` omitStorage + dest=Cleanup still hung at `autopsy()` because Autopsy stayed mounted. `78b0467a` dest=Cleanup + 0.3s spin **did** unmount Autopsy; ingest then hung on `RootView n=15 dest=cleanup phase=ready coverage=true items=8` with **no further Autopsy probe**. Shape hatch is not the live hang. Remaining split: hosted autopsy-with-data vs live Storage sidebar + ResultsView. Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
 
 Related:
 
@@ -43,6 +43,12 @@ A 200-second watchdog writes `COMPLETE` if a later shot hangs, so CI can still u
 ---
 
 ## Latest inspected artifacts
+
+### `78b0467a` run 26 — [34300724103](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34300724103)
+
+Artifact: [visual-qa-78b0467ab73cc463267f2462ddb1529da1ae7dec](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34300724103/artifacts/10084961008)
+
+**Isolation result.** Shape hatch did **not** fix the live hang. dest=Cleanup + 0.3s spin unmounted Autopsy (`RootView n=14 dest=cleanup`; `StorageAutopsyView n=19 phase=idle coverage=false`). ingest complete (8 items, coverage=true, publishes=6). Last line: `RootView n=15 dest=cleanup phase=ready coverage=true items=8`. No Autopsy probe after ingest. iso-hatch laid out (blank skip). iso-autopsy-idle captured. 03/09/`05c-live-cleanup` remain **NOT TESTED**. Canvas-hatch-in-Autopsy is **not** the live hang when Autopsy is unmounted. Remaining split: hosted autopsy-with-data vs live Storage sidebar + ResultsView after ingest.
 
 ### `122a0a47` run 25 — [34299516814](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34299516814)
 
@@ -109,7 +115,7 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
-- Overview / Autopsy with data (`03`, `09`) — **NOT TESTED.** Hosted `StorageAutopsyView` hung at `NSHostingView.contentView` (`30873fdd`). Live `ingestScan` returns, then hangs in the next RunLoop spin. `122a0a47` omitStorage + dest=Cleanup still hung at `autopsy()` with coverage (Canvas hatch in `SegmentStack`/`ScrollView`). Isolated framed hatch and idle Autopsy laid out. Hatch is now a `Shape`; 03/09 wait on the next Visual QA run.
+- Overview / Autopsy with data (`03`, `09`) — **NOT TESTED.** `78b0467a` unmounted Autopsy then hung on live RootView after ingest (`dest=cleanup phase=ready coverage=true items=8`). Hosted autopsy-with-data was not reached. Catalog now dest=Cleanup omitStorage ingest first, then re-enables Storage, then hosted autopsy. Product Storage and Autopsy stay.
 - Settings tab chrome in the hosted 520×360 pane
 - Window-server chrome (traffic lights / titlebar) on contentView layer shots
 - Canvas composition fidelity (Claude artifact login)

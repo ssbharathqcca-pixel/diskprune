@@ -56,7 +56,11 @@ struct RootView: View {
         // `.id` rebuilds the sidebar List when Storage rows first appear.
         // Incremental insert into SwiftUIOutlineListView hangs macos-latest
         // inside the next RunLoop spin after ingestScan (8b44f0b5).
-        List(selection: session.sidebarSelection) {
+        let _ = VisualQARuntime.probe(
+            "sidebar",
+            extra: "storage=\(showsStorageSidebar) dest=\(session.destination.id) coverage=\(session.coverage != nil)"
+        )
+        return List(selection: session.sidebarSelection) {
             Label("Overview", systemImage: "chart.pie")
                 .foregroundStyle(.primary)
                 .tag(SidebarDestination.overview)
@@ -113,23 +117,29 @@ struct RootView: View {
 
     @ViewBuilder
     private var detail: some View {
-        switch session.phase {
-        case .scanning:
-            ScanView(session: session)
-        case .executing:
-            executingView
-        case .failed(let message):
-            ErrorStateView(title: "Scan failed", detail: message)
-        default:
-            switch session.destination {
-            case .overview:
-                StorageAutopsyView(session: session)
-            case .category(let bucket):
-                ResultsView(session: session, filter: .bucket(bucket))
-            case .cleanup:
-                ResultsView(session: session, filter: .cleanup)
-            case .snapshots:
-                SnapshotView(summary: session.snapshots)
+        let _ = VisualQARuntime.probe(
+            "detail",
+            extra: "dest=\(session.destination.id) phase=\(String(describing: session.phase)) items=\(session.items.count)"
+        )
+        Group {
+            switch session.phase {
+            case .scanning:
+                ScanView(session: session)
+            case .executing:
+                executingView
+            case .failed(let message):
+                ErrorStateView(title: "Scan failed", detail: message)
+            default:
+                switch session.destination {
+                case .overview:
+                    StorageAutopsyView(session: session)
+                case .category(let bucket):
+                    ResultsView(session: session, filter: .bucket(bucket))
+                case .cleanup:
+                    ResultsView(session: session, filter: .cleanup)
+                case .snapshots:
+                    SnapshotView(summary: session.snapshots)
+                }
             }
         }
     }

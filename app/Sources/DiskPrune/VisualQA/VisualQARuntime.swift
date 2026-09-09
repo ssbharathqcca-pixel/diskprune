@@ -84,7 +84,7 @@ private enum VisualQACatalog {
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
         "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
-        "Post-ingest hang: 122a0a47 omitStorage + dest=Cleanup still hung. Last probe StorageAutopsyView n=19 phase=ready coverage=true (RootView stayed at 13). Isolated Canvas hatch and idle Autopsy laid out. autopsy() with not-examined hatch in SegmentStack/ScrollView is the trigger. Hatch is now a Shape.",
+        "Post-ingest hang: 78b0467a dest=Cleanup spin unmounted Autopsy (RootView n=14 dest=cleanup, Autopsy stayed idle). ingest then hung on RootView n=15 dest=cleanup phase=ready coverage=true items=8 — no further Autopsy probe. Shape hatch is not the live hang. Remaining: live Storage sidebar + ResultsView after ingest, vs hosted autopsy-with-data (not reached).",
     ]
     private static var auxWindow: NSWindow?
     private static var publishCount = 0
@@ -218,8 +218,8 @@ private enum VisualQACatalog {
         try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
         VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
 
-        // Isolation controls. iso-hatch / iso-autopsy-idle laid out on 122a0a47.
-        // autopsy() with coverage did not — Canvas hatch in SegmentStack/ScrollView.
+        // Isolation controls. iso-hatch / iso-autopsy-idle laid out on 122a0a47
+        // and 78b0467a. Shape hatch did not fix the live hang.
         attemptHosted(
             HatchSegment().frame(width: 240, height: 12),
             screen: "iso-hatch",
@@ -233,28 +233,34 @@ private enum VisualQACatalog {
         attemptHosted(StorageAutopsyView(session: idleAutopsy), screen: "iso-autopsy-idle", dark: false, size: wide, fixture: false)
         VisualQARuntime.trace("iso-autopsy-idle done")
 
-        // 122a0a47: omitStorage=true dest=Cleanup ingest still hung.
-        // Last line: StorageAutopsyView n=19 phase=ready coverage=true.
-        // RootView stayed at 13 — dest=Cleanup was set but Autopsy was still
-        // mounted (@ObservedObject) and autopsy() ran on the ingest publishes
-        // before RootView could swap to ResultsView.
-        // Isolated HatchSegment (explicit 240×12 frame) laid out. Idle Autopsy
-        // laid out (empty Capsule). Fixture notExamined is ~76% of the bar —
-        // Canvas HatchSegment sized by SegmentStack inside ScrollView hung.
-        // Hatch is now a Shape (PART 5.6 unchanged). Catalog: spin after
-        // dest=Cleanup so Autopsy unmounts, ingest, live Cleanup with Storage,
-        // hosted autopsy-with-data, live Overview. Storage sidebar stays.
-        VisualQARuntime.omitStorageSidebar = false
+        // 78b0467a: dest=Cleanup + 0.3s spin DID unmount Autopsy
+        // (RootView n=14 dest=cleanup; Autopsy stayed idle coverage=false).
+        // ingest then hung on RootView n=15 dest=cleanup phase=ready
+        // coverage=true items=8. No StorageAutopsyView / autopsy-ready after
+        // ingest — Autopsy was not in the tree. Shape hatch is not the live
+        // hang. Remaining split: live ResultsView after ingest without
+        // Storage vs Storage sidebar insert vs hosted autopsy-with-data.
+        // Catalog: dest=Cleanup omitStorage ingest first (ResultsView only);
+        // then re-enable Storage; hosted autopsy after live isolation so a
+        // hosted hang cannot hide the live result. Product Storage and
+        // Autopsy stay.
+        VisualQARuntime.omitStorageSidebar = true
         live.destination = .cleanup
         spin(0.3)
-        VisualQARuntime.trace("dest=cleanup spun probes=\(VisualQARuntime.probeCounts)")
+        VisualQARuntime.trace("dest=cleanup omitStorage=true spun probes=\(VisualQARuntime.probeCounts)")
         watchPublishes(live)
-        VisualQARuntime.trace("dest=cleanup omitStorage=false publishes=\(publishCount)")
         ingest(live, partial: false)
         VisualQARuntime.trace("ingest complete items=\(live.items.count) coverage=\(live.coverage != nil) dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
         VisualQARuntime.trace("post-ingest-spin begin")
         spin(0.3)
         VisualQARuntime.trace("post-ingest-spin end publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
+        attemptLive(window, screen: "05c-no-storage", dark: false, size: wide, fixture: true)
+        VisualQARuntime.trace("after 05c-no-storage dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
+
+        VisualQARuntime.omitStorageSidebar = false
+        live.objectWillChange.send()
+        VisualQARuntime.trace("re-enable Storage sidebar publishes=\(publishCount)")
+        spin(0.3)
         attemptLive(window, screen: "05c-live-cleanup", dark: false, size: wide, fixture: true)
         VisualQARuntime.trace("after 05c dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
 
