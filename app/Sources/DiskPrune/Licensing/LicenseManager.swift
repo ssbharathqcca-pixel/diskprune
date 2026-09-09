@@ -128,7 +128,11 @@ final class LicenseManager: ObservableObject {
             }
         }
 
-        applyStoredToken(now: instant)
+        // Clock rollback is fail-open for 7 days (T-OFF-03): verify against the
+        // last trusted time so nbf does not disable cleanup.
+        let storedMax = store.date(.maxSeenTime) ?? instant
+        let rolledBack = instant < storedMax.addingTimeInterval(-nbfSkew)
+        applyStoredToken(now: rolledBack ? storedMax : instant)
     }
 
     func activate(licenseKey: String) async {
@@ -320,6 +324,7 @@ final class LicenseManager: ObservableObject {
             }
         } else {
             store.set(.maxSeenTime, date: max(storedMax, instant))
+            clockWarning = nil
         }
     }
 
