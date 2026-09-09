@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 @testable import DiskPrune
 
@@ -76,5 +77,49 @@ final class UIPipelineTests: XCTestCase {
             XCTAssertFalse(text.contains(snapshotDelete), "\(url.lastPathComponent) exposes snapshot deletion")
             XCTAssertFalse(text.contains("removeItem"), "\(url.lastPathComponent) uses removeItem")
         }
+    }
+
+    func testSidebarSelectionWritebackDoesNotPublishNoOp() throws {
+        let knowledge = try StorageKnowledge.load()
+        let session = AppSession(knowledge: knowledge)
+        var fires = 0
+        let hook = session.objectWillChange.sink { fires += 1 }
+        _ = hook
+        let baseline = fires
+        session.sidebarSelection.wrappedValue = nil
+        session.sidebarSelection.wrappedValue = .overview
+        XCTAssertEqual(fires, baseline, "nil / same destination must not publish")
+        XCTAssertEqual(session.destination, .overview)
+        session.sidebarSelection.wrappedValue = .cleanup
+        XCTAssertEqual(fires, baseline + 1)
+        session.sidebarSelection.wrappedValue = .cleanup
+        XCTAssertEqual(fires, baseline + 1)
+        session.sidebarSelection.wrappedValue = .category(.developer)
+        XCTAssertEqual(fires, baseline + 2)
+        XCTAssertEqual(session.destination, .category(.developer))
+    }
+
+    func testIngestScanDoesNotChangeDestination() throws {
+        let knowledge = try StorageKnowledge.load()
+        let session = AppSession(knowledge: knowledge)
+        XCTAssertEqual(session.destination, .overview)
+        let item = TestSupport.makeItem(
+            url: URL(fileURLWithPath: "/Users/tester/Library/Caches/demo/item"),
+            fileID: FileID(dev: 1, ino: 21),
+            onDiskBytes: 4096,
+            safety: .safe
+        )
+        let coverage = StorageCoverage(
+            volumeTotalBytes: 1000,
+            volumeAvailableBytes: 400,
+            classifiedBytes: 4096,
+            unclassifiedScannedBytes: 0,
+            permissionLimitedPaths: [],
+            cleanupCandidateBytes: 4096
+        )
+        session.ingestScan(items: [item], coverage: coverage)
+        XCTAssertEqual(session.destination, .overview)
+        XCTAssertEqual(session.phase, .ready)
+        XCTAssertNotNil(session.coverage)
     }
 }

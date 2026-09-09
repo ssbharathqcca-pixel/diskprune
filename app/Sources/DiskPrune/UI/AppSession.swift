@@ -71,6 +71,21 @@ final class AppSession: ObservableObject {
         }
     }
 
+    /// `List(selection:)` is `Binding<SelectionValue?>`. During a rebuild it
+    /// writes `nil` or the current value back. Assigning `@Published
+    /// destination` on those no-ops republishes, SwiftUI rebuilds the sidebar,
+    /// and the loop never returns — that is the post-`ingestScan` hang
+    /// (`1ecd789b`: ingest returns, next RunLoop spin hangs even on Cleanup).
+    var sidebarSelection: Binding<SidebarDestination?> {
+        Binding(
+            get: { destination },
+            set: { newValue in
+                guard let newValue, newValue != destination else { return }
+                destination = newValue
+            }
+        )
+    }
+
     var currentPlan: CleanupPlan? {
         let planned = items.compactMap { PlannedItem(item: $0, userSelected: selectedIDs.contains($0.id)) }
         return CleanupPlan(items: planned)

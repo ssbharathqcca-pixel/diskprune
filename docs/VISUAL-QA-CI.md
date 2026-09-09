@@ -7,7 +7,7 @@ A human still has to look at the screenshots (and, when possible, a real Mac). C
 
 **Receipt (P0):** copy is “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 and the guardrail ban `reclaim` in `ReceiptView` / `CleanupPlanView`.
 
-**Autopsy hang (P1):** hosted `StorageAutopsyView` hung `0c24ff78` after `hosted 03-overview-autopsy begin` with 0 autopsy PNGs. `CapacityBar` used a top-level `GeometryReader` inside the autopsy `ScrollView`; a non-finite width plus `HatchSegment.frame(width:)` never returned. `CapacityBar` now overlays a height-capped finite reader and clamps segment widths. Autopsy shots prefer `screencapture -l` of the aux window before `CALayer.render`. Live `ingestScan` into `RootView` is still not driven (same hang class).
+**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). Root cause: `List(selection: $session.destination)` writeback onto `@Published destination` when the coverage-driven Storage section appears. `nil` / same-value assigns republish, SwiftUI rebuilds the sidebar, never returns. Fix: optional `sidebarSelection` Binding that ignores no-ops. Storage sidebar and Autopsy are unchanged. Hosted `StorageAutopsyView` previously hung at `NSHostingView.contentView`; live 03 is captured from the existing RootView after ingest.
 
 Related:
 

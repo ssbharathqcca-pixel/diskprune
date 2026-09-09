@@ -10,7 +10,7 @@
 - Snapshots are inspect-only. No delete affordance and no snapshot-deletion command in the UI.
 - Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`. Gate 4 remains NOT PASS.
 - Visual QA capture no longer mutates `NSVisualEffectView.canDrawSubviewsIntoLayer` (that hung macos-latest with 0 PNGs). After a `CALayer.render` safety PNG, the live sidebar is recovered with `screencapture -l` from the workflow, `CGWindowListCreateImage`, or the on-screen `NSTableView` cells. The harness does not call `FileManager.removeItem`. Receipt copy is “Empty Trash to permanently remove these items from your Mac.” Gate 4 remains NOT PASS.
-- Visual QA does not ingestScan into the live `RootView` and does not host `StorageAutopsyView`. `1ecd789b` showed ingestScan returns, then the next RunLoop spin hangs even with destination=Cleanup (sidebar Storage section). `30873fdd` recovered 01/02 sidebar via `screencapture -l`. Gate 4 remains NOT PASS.
+- `List(selection:)` now uses an optional Binding that ignores `nil` and no-op writes. Assigning `@Published destination` on those writes republished every sidebar rebuild after `ingestScan` revealed the Storage section — that hung the live RootView (`1ecd789b`). Sidebar content and Autopsy are unchanged. Gate 4 remains NOT PASS.
 
 
 ### Fixes

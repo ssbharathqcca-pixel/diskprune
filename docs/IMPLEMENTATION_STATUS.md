@@ -1,4 +1,4 @@
-Last verified commit: `30873fdd` (Swift build/tests/guardrails/schema/drift GREEN; Build macOS App GREEN; Visual QA run 18 SUCCESS with live 01/02 sidebar via screencapture). Gate 4 remains NOT PASS.
+Last verified commit: `583f78e8` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 21 SUCCESS, catalog skipped live ingest). Gate 4 remains NOT PASS. Post-ingest List selection writeback fix is in flight.
 
 An item is `[x]` only after its acceptance evidence exists.
 

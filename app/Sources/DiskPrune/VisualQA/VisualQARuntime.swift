@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Darwin
 import Foundation
 import SwiftUI
@@ -66,9 +67,11 @@ private enum VisualQACatalog {
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
         "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
-        "Hosted StorageAutopsyView hung 30873fdd at NSHostingView.contentView assignment. Autopsy is captured from the live RootView via screencapture -l after ingestScan. CapacityBar uses Layout, not GeometryReader.",
+        "Post-ingest hang: List(selection:) writeback onto @Published destination when the Storage section appears. sidebarSelection ignores nil/no-op. Hosted StorageAutopsyView previously hung at NSHostingView.contentView.",
     ]
     private static var auxWindow: NSWindow?
+    private static var publishCount = 0
+    private static var publishHook: AnyCancellable?
 
     static func schedule(session: AppSession) {
         guard !started else { return }
@@ -197,14 +200,50 @@ private enum VisualQACatalog {
         try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
         VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
 
-        // Do not ingestScan into the live RootView and do not host
-        // StorageAutopsyView:
-        // - 30873fdd hosted autopsy hung at NSHostingView.contentView
-        // - 0cd1fb83 ingestScan returned, then hung in the next RunLoop spin
-        // - 1ecd789b dest=cleanup still hung in that spin → sidebar Storage
-        //   section (coverage-driven List mutation), not only autopsy()
-        limitations.append("03/09 NOT TESTED: live ingest hangs on sidebar Storage section; hosted StorageAutopsyView hangs at contentView assignment")
-        VisualQARuntime.trace("skip live ingest / hosted autopsy (known hangs)")
+        watchPublishes(live)
+        ingest(live, partial: false)
+        live.destination = .cleanup
+        VisualQARuntime.trace("ingest complete items=\(live.items.count) coverage=\(live.coverage != nil) dest=\(live.destination.id) publishes=\(publishCount)")
+
+        applyAppearance(false)
+        attemptLive(window, screen: "05c-live-cleanup", dark: false, size: wide, fixture: true)
+        VisualQARuntime.trace("after 05c-live-cleanup dest=\(live.destination.id) publishes=\(publishCount)")
+
+        attemptHosted(
+            HatchSegment().frame(width: 240, height: 12),
+            screen: "iso-hatch",
+            dark: false,
+            size: CGSize(width: 280, height: 48),
+            fixture: true
+        )
+        VisualQARuntime.trace("isolation hatch done publishes=\(publishCount)")
+
+        live.destination = .overview
+        VisualQARuntime.trace("set overview dest=\(live.destination.id) publishes=\(publishCount)")
+        for dark in [false, true] {
+            for size in [wide, narrow] {
+                attemptLive(window, screen: "03-overview-autopsy", dark: dark, size: size, fixture: true)
+                VisualQARuntime.trace("after 03 dark=\(dark) \(Int(size.width)) dest=\(live.destination.id) publishes=\(publishCount)")
+            }
+        }
+
+        ingest(live, partial: true)
+        live.destination = .overview
+        VisualQARuntime.trace("partial ingest dest=\(live.destination.id) publishes=\(publishCount)")
+        for dark in [false, true] {
+            attemptLive(window, screen: "09-overview-partial", dark: dark, size: wide, fixture: true)
+            VisualQARuntime.trace("after 09 dark=\(dark) dest=\(live.destination.id) publishes=\(publishCount)")
+        }
+    }
+
+    private static func watchPublishes(_ session: AppSession) {
+        publishCount = 0
+        publishHook = session.objectWillChange.sink { _ in
+            publishCount += 1
+            if publishCount <= 40 || publishCount.isMultiple(of: 25) {
+                VisualQARuntime.trace("objectWillChange n=\(publishCount)")
+            }
+        }
     }
 
     private static func ingest(_ session: AppSession, partial: Bool) {
@@ -289,12 +328,12 @@ private enum VisualQACatalog {
         try write(rep, relative: "\(dir)/\(screen).png", screen: screen, dark: dark, size: size, fixture: fixture, source: source)
         VisualQARuntime.trace("captured \(screen) layer dark=\(dark) \(Int(size.width))x\(Int(size.height))")
 
-        if screen.hasPrefix("01-") || screen.hasPrefix("02-") { proveSidebar(window) }
+        if screen.hasPrefix("01-") || screen.hasPrefix("02-") || screen.hasPrefix("03-") || screen.hasPrefix("05") || screen.hasPrefix("09-") {
+            proveSidebar(window)
+        }
 
-        // Always ask the shell for 01/02 (window chrome + sidebar vibrancy).
-        // leftColumnIsBlank used to miss a uniform gray column when the split
-        // divider added ≥12 luminance, so recovery never ran.
-        let wantChrome = screen.hasPrefix("01-") || screen.hasPrefix("02-") || leftColumnIsBlank(rep)
+        // Live RootView shots: recover NSVisualEffectView sidebar via screencapture -l.
+        let wantChrome = true
         if wantChrome {
             VisualQARuntime.trace("trying window-server for \(screen) blankLeft=\(leftColumnIsBlank(rep))")
             if let shot = requestShellCapture(relative: "\(dir)/\(screen).png"), !leftColumnIsBlank(shot) {
