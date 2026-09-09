@@ -24,7 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Swift unit tests
-        run: cd app && swift test
+        run: |
+          cd app
+          swift test 2>&1 | tee ../test.log || (echo '```' >> $GITHUB_STEP_SUMMARY; cat ../test.log >> $GITHUB_STEP_SUMMARY; echo '```' >> $GITHUB_STEP_SUMMARY; exit 1)
 
   guardrails:
     name: 3 Destructive-operation guardrails
