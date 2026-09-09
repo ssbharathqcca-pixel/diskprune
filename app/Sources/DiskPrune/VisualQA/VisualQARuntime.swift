@@ -205,10 +205,21 @@ private enum VisualQACatalog {
         // RootView and capture with screencapture -l, which recovered 01/02.
         VisualQARuntime.trace("live ingest overview (not hosted StorageAutopsyView)")
         ingest(live, partial: false)
-        live.destination = .overview
         live.inspectorOpen = false
-        VisualQARuntime.trace("live ingest complete items=\(live.items.count) coverage=\(live.coverage != nil)")
+        // Storage sidebar appears as soon as coverage exists. Point detail at
+        // Cleanup first (hosted ResultsView already works) so we can tell
+        // whether the hang is the sidebar Storage section or autopsy().
+        live.destination = .cleanup
+        VisualQARuntime.trace("live ingest complete items=\(live.items.count) coverage=\(live.coverage != nil) dest=cleanup")
         spin(0.7)
+        VisualQARuntime.trace("post-ingest cleanup laid out")
+        applyAppearance(false)
+        attemptLive(window, screen: "05c-live-cleanup", dark: false, size: wide, fixture: true)
+
+        live.destination = .overview
+        VisualQARuntime.trace("switching live destination to overview")
+        spin(0.7)
+        VisualQARuntime.trace("post-ingest overview laid out")
         for dark in [false, true] {
             applyAppearance(dark)
             attemptLive(window, screen: "03-overview-autopsy", dark: dark, size: wide, fixture: true)
@@ -219,6 +230,7 @@ private enum VisualQACatalog {
         live.destination = .overview
         VisualQARuntime.trace("live partial ingest complete permissionPaths=\(live.coverage?.permissionLimitedPaths.count ?? -1)")
         spin(0.7)
+        VisualQARuntime.trace("post-partial overview laid out")
         for dark in [false, true] {
             applyAppearance(dark)
             attemptLive(window, screen: "09-overview-partial", dark: dark, size: wide, fixture: true)
