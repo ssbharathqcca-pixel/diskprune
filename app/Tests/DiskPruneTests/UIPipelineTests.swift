@@ -121,5 +121,6 @@ final class UIPipelineTests: XCTestCase {
         XCTAssertEqual(session.destination, .overview)
         XCTAssertEqual(session.phase, .ready)
         XCTAssertNotNil(session.coverage)
+        XCTAssertFalse(VisualQARuntime.omitStorageSidebar)
     }
 }

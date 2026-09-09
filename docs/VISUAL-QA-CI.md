@@ -7,7 +7,7 @@ A human still has to look at the screenshots (and, when possible, a real Mac). C
 
 **Receipt (P0):** copy is “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 and the guardrail ban `reclaim` in `ReceiptView` / `CleanupPlanView`.
 
-**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). `8d4d1d56` stopped same-value `@Published` writeback; Visual QA then showed **exactly 7** `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. Remaining isolation: ingest previously ran while dest was still Overview (Autopsy in the first applied tree). Catalog now sets dest=Cleanup *before* ingest, hosts HatchSegment + idle Autopsy first, retries hosted Autopsy-with-data after the Layout CapacityBar. Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
+**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). `8d4d1d56` stopped same-value `@Published` writeback; Visual QA then showed **exactly 7** `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. `8b44f0b5` set dest=Cleanup *before* ingest: HatchSegment and idle Autopsy hosted; live hang still at `waitForLayout begin` with no further RootView probe. Remaining candidate: `SwiftUIOutlineListView` inserting the Storage section. Catalog now omits Storage, captures live Cleanup, then re-enables Storage on a new List identity. Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
 
 Related:
 
@@ -43,6 +43,12 @@ A 200-second watchdog writes `COMPLETE` if a later shot hangs, so CI can still u
 ---
 
 ## Latest inspected artifacts
+
+### `8b44f0b5` run 24 — [34298560795](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34298560795)
+
+Artifact: [visual-qa-8b44f0b547140c25b4d1b9d1bf5c1f5b0f620d9f](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34298560795/artifacts/10084204239)
+
+**Isolation result.** HatchSegment laid out (`iso-hatch` skipped as blank PNG). Hosted idle Autopsy captured. dest=Cleanup before ingest: 7 publishes, then hang at `waitForLayout begin` for live 05c. No further RootView probe. `DONE` = `checkpoint-before-autopsy`. Publish-loop and Autopsy-first-tree hypotheses **disproven**. Remaining candidate: live `SwiftUIOutlineListView` inserting Storage rows.
 
 ### `30873fdd` run 18 — [34292824436](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34292824436)
 
@@ -97,7 +103,7 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
-- Overview / Autopsy with data (`03`, `09`) — **NOT TESTED.** Hosted `StorageAutopsyView` hung at `NSHostingView.contentView` (`30873fdd`). Live `ingestScan` returns, then hangs in the next RunLoop spin even with destination=Cleanup (`1ecd789b`) — the coverage-driven sidebar Storage section, not only autopsy. Catalog now skips both so the 01/02 sidebar shots still upload.
+- Overview / Autopsy with data (`03`, `09`) — **NOT TESTED.** Hosted `StorageAutopsyView` hung at `NSHostingView.contentView` (`30873fdd`). Live `ingestScan` returns, then hangs in the next RunLoop spin even with destination=Cleanup *before* ingest (`8b44f0b5`). HatchSegment and idle Autopsy hosted. Remaining candidate: coverage-driven Storage section in `SwiftUIOutlineListView`. Catalog now omits Storage, then re-enables it on a new List identity so the 01/02 sidebar shots still upload.
 - Settings tab chrome in the hosted 520×360 pane
 - Window-server chrome (traffic lights / titlebar) on contentView layer shots
 - Canvas composition fidelity (Claude artifact login)

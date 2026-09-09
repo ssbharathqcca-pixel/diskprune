@@ -21,11 +21,16 @@ enum VisualQARuntime {
     /// Body-eval counter. Live only when the harness is on. Not a product path.
     static var probeCounts: [String: Int] = [:]
 
+    /// Diagnostic only. When true, `RootView` does not insert the coverage-driven
+    /// Storage sidebar section. Default false — the product always shows Storage
+    /// after a scan. The catalog flips this to isolate the post-ingest hang.
+    static var omitStorageSidebar = false
+
     static func probe(_ label: String, extra: String = "") {
         guard isEnabled else { return }
         let n = (probeCounts[label] ?? 0) + 1
         probeCounts[label] = n
-        if n <= 8 || n == 15 || n == 40 || n.isMultiple(of: 50) {
+        if n <= 20 || n == 40 || n.isMultiple(of: 50) {
             trace("probe \(label) n=\(n) \(extra)")
         }
     }
@@ -79,7 +84,7 @@ private enum VisualQACatalog {
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
         "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
-        "Post-ingest hang: List(selection:) writeback onto @Published destination when the Storage section appears. destination notifies only on a real change; selection Binding stays non-optional. Hosted StorageAutopsyView previously hung at NSHostingView.contentView.",
+        "Post-ingest hang: 8b44f0b5 dest=Cleanup before ingest still hung inside waitForLayout (no RootView probe after ingest). HatchSegment and idle Autopsy hosted fine. Remaining candidate: SwiftUIOutlineListView inserting the Storage section. Catalog omits Storage, then re-enables it on a new List identity.",
     ]
     private static var auxWindow: NSWindow?
     private static var publishCount = 0
@@ -120,6 +125,7 @@ private enum VisualQACatalog {
     }
 
     private static func finish(ok: Bool, reason: String) {
+        VisualQARuntime.omitStorageSidebar = false
         writeManifest()
         try? Data("\(reason)\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
         try? Data("\(reason)\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("COMPLETE"))
@@ -212,15 +218,12 @@ private enum VisualQACatalog {
         try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
         VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
 
-        // Isolation (8d4d1d56): objectWillChange stopped at 7, then hang inside
-        // waitForLayout. ingest happened while dest was still .overview, so the
-        // first applied tree may have been Autopsy, not Cleanup. Do not hide
-        // Storage or Autopsy in the product. Sequence:
-        // 1. hosted HatchSegment (Canvas canary)
-        // 2. hosted idle StorageAutopsyView (firstLaunch path)
-        // 3. dest=cleanup BEFORE ingest, then live 05c (Storage sidebar + ResultsView, no Autopsy)
-        // 4. hosted StorageAutopsyView with coverage (retry; last hung with GeometryReader)
-        // 5. live Overview / partial last
+        // Isolation (8b44f0b5): dest=Cleanup before ingest still hung inside
+        // waitForLayout. HatchSegment laid out; idle Autopsy hosted. No RootView
+        // probe after ingest — SwiftUI never returned from applying the live
+        // tree. Sidebar is SwiftUIOutlineListView (3 rows pre-scan). Product
+        // Storage section stays; catalog omits it first, then re-enables it
+        // on a new List identity (showsStorageSidebar → sidebar-ready).
         attemptHosted(
             HatchSegment().frame(width: 240, height: 12),
             screen: "iso-hatch",
@@ -235,10 +238,23 @@ private enum VisualQACatalog {
         VisualQARuntime.trace("iso-autopsy-idle done")
 
         watchPublishes(live)
+        VisualQARuntime.omitStorageSidebar = true
         live.destination = .cleanup
-        VisualQARuntime.trace("dest=cleanup before ingest publishes=\(publishCount)")
+        VisualQARuntime.trace("dest=cleanup omitStorage=true publishes=\(publishCount)")
         ingest(live, partial: false)
-        VisualQARuntime.trace("ingest complete items=\(live.items.count) coverage=\(live.coverage != nil) dest=\(live.destination.id) publishes=\(publishCount)")
+        VisualQARuntime.trace("ingest complete items=\(live.items.count) coverage=\(live.coverage != nil) dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
+        VisualQARuntime.trace("post-ingest-spin begin")
+        spin(0.15)
+        VisualQARuntime.trace("post-ingest-spin end publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
+        attemptLive(window, screen: "05c-no-storage", dark: false, size: wide, fixture: true)
+        VisualQARuntime.trace("after 05c-no-storage dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
+
+        VisualQARuntime.omitStorageSidebar = false
+        live.objectWillChange.send()
+        VisualQARuntime.trace("re-enable Storage sidebar publishes=\(publishCount)")
+        VisualQARuntime.trace("post-storage-spin begin")
+        spin(0.15)
+        VisualQARuntime.trace("post-storage-spin end publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
         attemptLive(window, screen: "05c-live-cleanup", dark: false, size: wide, fixture: true)
         VisualQARuntime.trace("after 05c dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
 
@@ -493,7 +509,7 @@ private enum VisualQACatalog {
     }
 
     private static func waitForLayout(_ window: NSWindow, size: CGSize, flush: Bool = false) {
-        VisualQARuntime.trace("waitForLayout begin \(Int(size.width))x\(Int(size.height))")
+        VisualQARuntime.trace("waitForLayout begin \(Int(size.width))x\(Int(size.height)) probes=\(VisualQARuntime.probeCounts)")
         window.appearance = NSApp.appearance
         window.setContentSize(size)
         window.makeKeyAndOrderFront(nil)
@@ -502,7 +518,7 @@ private enum VisualQACatalog {
             window.contentView?.layoutSubtreeIfNeeded()
             window.displayIfNeeded()
         }
-        VisualQARuntime.trace("waitForLayout end")
+        VisualQARuntime.trace("waitForLayout end probes=\(VisualQARuntime.probeCounts)")
     }
 
     private static func proveSidebar(_ window: NSWindow) {

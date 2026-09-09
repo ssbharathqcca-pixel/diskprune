@@ -53,6 +53,9 @@ struct RootView: View {
 
     private var sidebar: some View {
         // Non-optional selection Binding: see AppSession.sidebarSelection.
+        // `.id` rebuilds the sidebar List when Storage rows first appear.
+        // Incremental insert into SwiftUIOutlineListView hangs macos-latest
+        // inside the next RunLoop spin after ingestScan (8b44f0b5).
         List(selection: session.sidebarSelection) {
             Label("Overview", systemImage: "chart.pie")
                 .foregroundStyle(.primary)
@@ -60,7 +63,7 @@ struct RootView: View {
                 .keyboardShortcut("1", modifiers: .command)
                 .accessibilityLabel(overviewA11y)
 
-            if session.phase == .ready || session.phase == .executing, let coverage = session.coverage {
+            if showsStorageSidebar, let coverage = session.coverage {
                 Section("Storage") {
                     ForEach(sidebarCategories(coverage), id: \.bucket) { share in
                         HStack {
@@ -104,6 +107,7 @@ struct RootView: View {
                 .keyboardShortcut("3", modifiers: .command)
         }
         .listStyle(.sidebar)
+        .id(showsStorageSidebar ? "sidebar-ready" : "sidebar-idle")
         .navigationTitle("DiskPrune")
     }
 
@@ -169,6 +173,14 @@ struct RootView: View {
             .keyboardShortcut("r", modifiers: .command)
             .accessibilityLabel("Scan")
         }
+    }
+
+    private var showsStorageSidebar: Bool {
+        if VisualQARuntime.isEnabled && VisualQARuntime.omitStorageSidebar {
+            return false
+        }
+        guard session.phase == .ready || session.phase == .executing else { return false }
+        return session.coverage != nil
     }
 
     private func sidebarCategories(_ coverage: StorageCoverage) -> [CategoryShare] {

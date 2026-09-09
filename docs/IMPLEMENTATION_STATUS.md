@@ -1,4 +1,4 @@
-Last verified commit: `583f78e8` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 21 SUCCESS, catalog skipped live ingest). `2f983e21` failed to compile (missing `self` in `sidebarSelection`). Gate 4 remains NOT PASS. Post-ingest destination writeback fix is in flight.
+Last verified commit: `8b44f0b5` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 24 SUCCESS-with-watchdog). `8b44f0b5` dest=Cleanup before ingest: HatchSegment + idle Autopsy hosted; live hang still inside `waitForLayout` after ingest (no RootView probe). Gate 4 remains NOT PASS. Post-ingest Storage-section isolation is in flight.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -47,8 +47,8 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Protected/advanced have no checkbox
 - [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
 - [x] CI screenshot workflow of the packaged app (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
-- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (hosted autopsy hangs at contentView; live ingest hangs on sidebar Storage section even at Cleanup)
-- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED** (`1ecd789b` hung in RunLoop spin after ingest returned)
+- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (hosted idle Autopsy works; hosted autopsy-with-data and live ingest hang on `8b44f0b5`)
+- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED** (`8b44f0b5` hung in `waitForLayout` after dest=Cleanup ingest; HatchSegment/idle Autopsy hosted)
 - [x] Sidebar `NSVisualEffectView` vibrancy in CI shots — **01/02 recovered on `30873fdd` via `screencapture -l`** (human still must review)
 - [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
 - [ ] Human review of CI screenshots — **NOT TESTED**
