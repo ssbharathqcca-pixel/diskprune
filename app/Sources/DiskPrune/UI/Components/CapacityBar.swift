@@ -20,69 +20,42 @@ struct CapacityBar: View {
     @State private var hovered: Int?
 
     var body: some View {
-        // Overlay GeometryReader on a height-capped clear view so the reader
-        // never inherits an unbounded ScrollView proposal. A top-level
-        // GeometryReader inside StorageAutopsyView's ScrollView reported
-        // non-finite width on macos-latest, then HatchSegment.frame(width:)
-        // hung hosted 03/09 (0c24ff78). Appearance is unchanged when the
-        // parent proposes a normal width.
-        Color.clear
-            .frame(height: height)
-            .frame(maxWidth: .infinity)
-            .overlay {
-                GeometryReader { geo in
-                    let barWidth = Self.finiteWidth(geo.size.width)
-                    HStack(spacing: 1) {
-                        if loading || total <= 0 || segments.isEmpty || barWidth <= 0 {
-                            Capsule()
-                                .fill(Color(nsColor: .quaternaryLabelColor))
-                        } else {
-                            ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
-                                segmentView(segment, width: width(for: segment, in: barWidth))
-                                    .opacity(hovered == nil || hovered == index ? 1 : 0.6)
-                                    .onHover { inside in
-                                        hovered = inside ? index : (hovered == index ? nil : hovered)
-                                    }
-                                    .help(tooltip(segment))
+        Group {
+            if loading || total <= 0 || segments.isEmpty {
+                Capsule()
+                    .fill(Color(nsColor: .quaternaryLabelColor))
+            } else {
+                // Layout, not GeometryReader: a GR inside StorageAutopsyView's
+                // ScrollView hung macos-latest at NSHostingView.contentView
+                // assignment (30873fdd). Segment widths stay proportional.
+                SegmentStack(weights: segments.map { CGFloat(max($0.bytes, 0)) }, spacing: 1) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                        segmentView(segment)
+                            .opacity(hovered == nil || hovered == index ? 1 : 0.6)
+                            .onHover { inside in
+                                hovered = inside ? index : (hovered == index ? nil : hovered)
                             }
-                        }
+                            .help(tooltip(segment))
                     }
                 }
             }
-            .frame(height: height)
-            .clipShape(RoundedRectangle(cornerRadius: Geometry.radiusControl, style: .continuous))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Storage capacity")
-            .accessibilityValue(accessibilityValue)
-    }
-
-    private static func finiteWidth(_ value: CGFloat) -> CGFloat {
-        guard value.isFinite, value > 0 else { return 0 }
-        return min(value, 4096)
-    }
-
-    private func width(for segment: CapacitySegment, in totalWidth: CGFloat) -> CGFloat {
-        guard total > 0 else { return 0 }
-        let safeWidth = Self.finiteWidth(totalWidth)
-        guard safeWidth > 0 else { return 2 }
-        let gaps = CGFloat(max(segments.count - 1, 0))
-        let usable = max(safeWidth - gaps, 0)
-        let raw = usable * CGFloat(segment.bytes) / CGFloat(total)
-        guard raw.isFinite else { return 2 }
-        return min(max(raw, 2), safeWidth)
+        }
+        .frame(height: height)
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: Geometry.radiusControl, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Storage capacity")
+        .accessibilityValue(accessibilityValue)
     }
 
     @ViewBuilder
-    private func segmentView(_ segment: CapacitySegment, width: CGFloat) -> some View {
-        let w = Self.finiteWidth(width)
+    private func segmentView(_ segment: CapacitySegment) -> some View {
         switch segment.kind {
         case .category(let bucket):
             RoundedRectangle(cornerRadius: 0)
                 .fill(bucket.fill(colorScheme))
-                .frame(width: w > 0 ? w : 2, height: height)
         case .notExamined:
             HatchSegment()
-                .frame(width: w > 0 ? w : 2, height: height)
         }
     }
 
@@ -106,6 +79,45 @@ struct CapacityBar: View {
             }
         }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// Proportional HStack that only ever places at the parent's finite proposal.
+private struct SegmentStack: Layout {
+    var weights: [CGFloat]
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = Self.finite(proposal.width)
+        let height = Self.finite(proposal.height) ?? 12
+        return CGSize(width: width ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let n = subviews.count
+        guard n > 0, bounds.width.isFinite, bounds.width > 0, bounds.height.isFinite else { return }
+        let gaps = spacing * CGFloat(max(n - 1, 0))
+        let usable = max(bounds.width - gaps, 0)
+        var sum: CGFloat = 0
+        for i in 0..<n {
+            sum += i < weights.count ? max(weights[i], 0) : 0
+        }
+        if sum <= 0 { sum = CGFloat(n) }
+        var x = bounds.minX
+        for i in 0..<n {
+            let weight = i < weights.count ? max(weights[i], 0) : 0
+            let w = min(max(usable * weight / sum, 2), usable)
+            subviews[i].place(
+                at: CGPoint(x: x, y: bounds.minY),
+                proposal: ProposedViewSize(width: w, height: bounds.height)
+            )
+            x += w + spacing
+        }
+    }
+
+    private static func finite(_ value: CGFloat?) -> CGFloat? {
+        guard let value, value.isFinite, value > 0 else { return nil }
+        return min(value, 4096)
     }
 }
 

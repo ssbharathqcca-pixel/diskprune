@@ -66,7 +66,7 @@ private enum VisualQACatalog {
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
         "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
-        "Hosted StorageAutopsyView hung 0c24ff78 on CALayer.render / unbounded GeometryReader. CapacityBar now overlays a finite reader; autopsy shots prefer screencapture -l of the aux window.",
+        "Hosted StorageAutopsyView hung 30873fdd at NSHostingView.contentView assignment. Autopsy is captured from the live RootView via screencapture -l after ingestScan. CapacityBar uses Layout, not GeometryReader.",
     ]
     private static var auxWindow: NSWindow?
 
@@ -199,15 +199,29 @@ private enum VisualQACatalog {
         try? Data("checkpoint-before-autopsy\n".utf8).write(to: VisualQARuntime.outputRoot.appendingPathComponent("DONE"))
         VisualQARuntime.trace("checkpoint before autopsy shots=\(records.count)")
 
-        // Phase C last: Overview / Autopsy. Hosted StorageAutopsyView hung
-        // 0c24ff78 after "begin" with 0 autopsy PNGs. CapacityBar is now
-        // finite; capture prefers screencapture -l of the aux window.
+        // Do not host StorageAutopsyView. 30873fdd hung at
+        // `window.contentView = hosting` after "hosting constructed"
+        // (overlay GeometryReader was not enough). Drive the already-on-screen
+        // RootView and capture with screencapture -l, which recovered 01/02.
+        VisualQARuntime.trace("live ingest overview (not hosted StorageAutopsyView)")
+        ingest(live, partial: false)
+        live.destination = .overview
+        live.inspectorOpen = false
+        VisualQARuntime.trace("live ingest complete items=\(live.items.count) coverage=\(live.coverage != nil)")
+        spin(0.7)
         for dark in [false, true] {
             applyAppearance(dark)
-            fixture.destination = .overview
-            attemptHosted(StorageAutopsyView(session: fixture), screen: "03-overview-autopsy", dark: dark, size: wide, fixture: true, preferLayer: true)
-            partialSession.destination = .overview
-            attemptHosted(StorageAutopsyView(session: partialSession), screen: "09-overview-partial", dark: dark, size: wide, fixture: true, preferLayer: true)
+            attemptLive(window, screen: "03-overview-autopsy", dark: dark, size: wide, fixture: true)
+        }
+
+        VisualQARuntime.trace("live ingest partial overview")
+        ingest(live, partial: true)
+        live.destination = .overview
+        VisualQARuntime.trace("live partial ingest complete permissionPaths=\(live.coverage?.permissionLimitedPaths.count ?? -1)")
+        spin(0.7)
+        for dark in [false, true] {
+            applyAppearance(dark)
+            attemptLive(window, screen: "09-overview-partial", dark: dark, size: wide, fixture: true)
         }
     }
 

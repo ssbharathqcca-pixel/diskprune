@@ -42,24 +42,33 @@ A 200-second watchdog writes `COMPLETE` if a later shot hangs, so CI can still u
 
 ---
 
-## Latest inspected artifact — `0c24ff78` run 17
+## Latest inspected artifacts
+
+### `30873fdd` run 18 — [34292824436](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34292824436)
+
+Artifact: [visual-qa-30873fdd1a75df23e7029b5fa2c645bb0a179e5f](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34292824436/artifacts/10082155083) (50 files; 8 are leftover `.ws.png`)
+
+**01/02 recovered.** `screencapture -l` of the live window produced real sidebar chrome: Overview / Cleanup / Snapshots, Search field, Scan toolbar, traffic lights. Source `live-window-screencapture`. That is the production `RootView`, not a mock.
+
+**03/09 still hung.** Hosted `StorageAutopsyView` died at `NSHostingView.contentView =` after `hosting constructed` (overlay `GeometryReader` was not enough). `DONE` = `checkpoint-before-autopsy`. 42 catalog PNGs + 8 `.ws.png`.
+
+### `0c24ff78` run 17 — [34291508834](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34291508834)
 
 Artifact: [visual-qa-0c24ff7825a25237a6ee49f86a3a0940c68fbb4a](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34291508834/artifacts/10081671973)  
-Run: [34291508834](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34291508834)  
-42 PNGs. `DONE` = `checkpoint-before-autopsy`. Harness hung on hosted `StorageAutopsyView` (last log: `hosted 03-overview-autopsy begin dark=false 1100x720`).
+42 PNGs. Dark 04/05/07b/08 present. 01/02 still `live-window-layer` (blank sidebar). Hung on hosted autopsy.
 
-| Shot | On `0c24ff78`? | How | Fixture? |
+| Shot | On `30873fdd`? | How | Fixture? |
 | --- | --- | --- | --- |
-| `01-first-launch` | **yes** live window, light+dark, 1100 and 880 | Live `RootView` idle. Sidebar column still blank (`source=live-window-layer`) | no |
-| `02-scan-progress` | **yes** live window, light+dark, 1100 and 880 | Live `RootView`, `phase = .scanning` | probe labels only |
-| `03-overview-autopsy` | **NO** — hosted `StorageAutopsyView` hung | would be hosted production autopsy | coverage + items |
+| `01-first-launch` | **yes** live window + chrome, light+dark, 1100 and 880 | Live `RootView` idle, `screencapture -l` | no |
+| `02-scan-progress` | **yes** live window + chrome, light+dark, 1100 and 880 | Live `RootView`, `phase = .scanning` | probe labels only |
+| `03-overview-autopsy` | **NO** — hosted view hung at contentView assignment | live `RootView` after `ingestScan` (this commit) | coverage + items |
 | `04-category-detail` | **yes** light+dark, 1100 and 880 | Hosted `ResultsView` Developer | items from rules |
 | `05-cleanup-candidates` | **yes** light+dark, 1100 and 880 | Hosted `ResultsView` Cleanup + Review Cleanup footer | items from rules |
 | `06-item-inspector` | **yes** aux window 420×640, light+dark | Production `ItemDetailView` | Safe item |
 | `07-snapshots` | **yes** empty state, light+dark, 1100 and 880 | Production `SnapshotView` | empty summary |
 | `07b-snapshots-list` | **yes** light+dark, 1100 and 880 | Hosted `SnapshotView` with 3 dates + inspect-only copy | 3 dates |
 | `08-empty-no-candidates` | **yes** light+dark, 1100 and 880 | Hosted Cleanup, Protected/Advanced only | protected + docker-raw |
-| `09-overview-partial` | **NO** — never reached | would be hosted autopsy + permission paths | partial coverage |
+| `09-overview-partial` | **NO** — never reached | live Overview + permission paths (this commit) | partial coverage |
 | `10-inspector-protected` | **yes** aux window, light+dark | Production `ItemDetailView` | Documents rule |
 | `11-inspector-advanced` | **yes** aux window, light+dark | Production `ItemDetailView` | `docker-raw` sparse |
 | `12-dry-run` | **yes** light+dark | Production `DryRunSheet` — not executed | selected Safe items |
@@ -69,7 +78,7 @@ Run: [34291508834](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs
 
 Inspected 04/05/07b/08 dark 1100 shots are production UI (Developer list, Cleanup checkboxes, snapshot dates, empty Protected/Advanced state). Receipt is three accounting lines + “Empty Trash to permanently remove these items from your Mac.” Missing rows are **NOT TESTED**, not a PASS.
 
-CI jobs 1–5 on `0c24ff78`: GREEN. Build macOS App: GREEN. Visual QA workflow: SUCCESS (watchdog collected 42 PNGs).
+CI jobs 1–5 on `30873fdd`: GREEN. Build macOS App: GREEN. Visual QA workflow: SUCCESS (watchdog collected shots).
 
 ---
 
@@ -88,9 +97,8 @@ Fixtures go through the **existing** models and the **existing** `ingestScan` te
 
 ## What cannot be verified in CI
 
-- Overview / Autopsy with data (`03`, `09`) — hosted `StorageAutopsyView` hung `0c24ff78`; CapacityBar finite overlay + aux `screencapture` are in source but **not yet proven on macos-latest**
+- Overview / Autopsy with data (`03`, `09`) — hosted `StorageAutopsyView` hung `30873fdd` at contentView assignment; live `ingestScan` + `screencapture` is the next attempt and **not yet proven**
 - Live `RootView` after `ingestScan` (sidebar Storage section + in-window category/cleanup chrome)
-- Sidebar `NSVisualEffectView` vibrancy on 01/02 (`0c24ff78` still `live-window-layer`, blank left column)
 - Settings tab chrome in the hosted 520×360 pane
 - Window-server chrome (traffic lights / titlebar) on contentView layer shots
 - Canvas composition fidelity (Claude artifact login)

@@ -1,4 +1,4 @@
-Last verified commit: `0c24ff78` (Swift build/tests/guardrails/schema/drift GREEN; Build macOS App GREEN; Visual QA run 17 SUCCESS with 42 PNGs). Gate 4 remains NOT PASS.
+Last verified commit: `30873fdd` (Swift build/tests/guardrails/schema/drift GREEN; Build macOS App GREEN; Visual QA run 18 SUCCESS with live 01/02 sidebar via screencapture). Gate 4 remains NOT PASS.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -47,9 +47,9 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Protected/advanced have no checkbox
 - [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
 - [x] CI screenshot workflow of the packaged app (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
-- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (`0c24ff78` hung on hosted `StorageAutopsyView`)
+- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (`30873fdd` hung on hosted `StorageAutopsyView` at contentView assignment)
 - [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED**
-- [ ] Sidebar `NSVisualEffectView` vibrancy in CI shots — **NOT TESTED** (01/02 still blank left column)
+- [x] Sidebar `NSVisualEffectView` vibrancy in CI shots — **01/02 recovered on `30873fdd` via `screencapture -l`** (human still must review)
 - [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
 - [ ] Human review of CI screenshots — **NOT TESTED**
 - [ ] Canvas comparison — **NOT TESTED**
