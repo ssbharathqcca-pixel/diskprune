@@ -1,7 +1,9 @@
 # Visual QA protocol — Phase 3
 
-**Status:** prepared for a human reviewer. Gate 4 does **not** pass until a human inspects the UI.  
-CI screenshots are **supplemental** — see [`VISUAL-QA-CI.md`](VISUAL-QA-CI.md). They do not convert Gate 4 to PASS.
+**Status:** Gate 4 **PASS** on `2241cbe5` after human review of the CI live-window artifact.  
+CI `manifest.json` still writes `"gate4": "NOT PASS"` so the workflow cannot self-certify. The verdict lives in [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
+
+Reviewed artifact: https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34305189018/artifacts/10086420999
 
 
 Authoritative documents:

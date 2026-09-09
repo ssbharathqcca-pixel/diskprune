@@ -23,7 +23,7 @@ The running UI is Overview / Cleanup / Snapshots per [`docs/DESIGN-GUIDE.md`](do
 
 Cleanup path: `ScanEngine` → selection → `PlannedItem` → `CleanupPlan` → dry run → TOCTOU → `CleanupExecutor` → Trash → receipt (three accounting lines).
 
-**Gate 4 (visual QA) is not passed.** A human must inspect the UI using [`docs/VISUAL_QA.md`](docs/VISUAL_QA.md). CI screenshots are supplemental ([`docs/VISUAL-QA-CI.md`](docs/VISUAL-QA-CI.md)).
+**Gate 4 (visual QA): PASS** on `2241cbe5` after human review of the CI live-window artifact ([`docs/VISUAL-QA-CI.md`](docs/VISUAL-QA-CI.md)). Phase 4 is not started.
 
 
 ### Visual QA build

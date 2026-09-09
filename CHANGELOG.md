@@ -8,9 +8,10 @@
 - Cleanup goes Scan → selection → `PlannedItem` → `CleanupPlan` → dry run → TOCTOU → `CleanupExecutor` → Trash → receipt. The new UI does not call `ScannerActor.trash(urls:)`.
 - Receipt copy no longer says “reclaim” for Trash-moved bytes. It now reads: “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 also bans `reclaim` in ReceiptView / CleanupPlanView.
 - Snapshots are inspect-only. No delete affordance and no snapshot-deletion command in the UI.
-- Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`. Gate 4 remains NOT PASS.
-- Visual QA capture no longer mutates `NSVisualEffectView.canDrawSubviewsIntoLayer` (that hung macos-latest with 0 PNGs). After a `CALayer.render` safety PNG, the live sidebar is recovered with `screencapture -l` from the workflow, `CGWindowListCreateImage`, or the on-screen `NSTableView` cells. The harness does not call `FileManager.removeItem`. Receipt copy is “Empty Trash to permanently remove these items from your Mac.” Gate 4 remains NOT PASS.
-- `destination` is no longer `@Published`. Same-value assigns (including `List(selection:)` writeback of the current row when the Storage section appears) do not republish. `8d4d1d56` Visual QA then showed exactly 7 `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. `122a0a47` omitStorage still hung because Autopsy stayed mounted. `78b0467a` dest=Cleanup spin unmounted Autopsy; ingest then hung on live RootView dest=cleanup phase=ready coverage=true items=8 (no Autopsy in the tree). Shape hatch is not the live hang. Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
+- Visual QA package: `scripts/package-macos.sh` copies the storage-rules resource into the app bundle (previous DMG packaging omitted it). Reviewer protocol is `docs/VISUAL_QA.md`.
+- Visual QA capture no longer mutates `NSVisualEffectView.canDrawSubviewsIntoLayer` (that hung macos-latest with 0 PNGs). After a `CALayer.render` safety PNG, the live sidebar is recovered with `screencapture -l` from the workflow, `CGWindowListCreateImage`, or the on-screen `NSTableView` cells. The harness does not call `FileManager.removeItem`. Receipt copy is “Empty Trash to permanently remove these items from your Mac.”
+- `destination` is no longer `@Published`. Same-value assigns do not republish.
+- `907e103e` fixed `AutopsyModel` Int64 overflow (`classifiedBytes * w / weightTotal`). Post-scan Overview, Storage sidebar, and live Cleanup render. Gate 4 **PASS** on `2241cbe5` after human review of Visual QA run 33. Phase 4 is not started.
 
 
 ### Fixes
