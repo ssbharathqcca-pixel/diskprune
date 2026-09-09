@@ -19,16 +19,18 @@ id = "REPLACE_WITH_KV_NAMESPACE_ID"
 [triggers]
 crons = ["0 */6 * * *"]
 
-# Secrets (wrangler secret put — never commit):
+# Secrets (wrangler secret put — never commit; never put in [vars]):
 #   STRIPE_WEBHOOK_SECRET
 #   LICENSE_ENCRYPTION_KEY          # 32 raw bytes, base64
 #   LICENSE_SIGNING_KEY_K1          # PKCS#8 Ed25519, base64
-#   LICENSE_SIGNING_PUB_K1          # raw 32-byte public key, base64
 #   RESEND_API_KEY
 # Optional:
 #   LICENSE_ENCRYPTION_KEY_V2
 #   LICENSE_SIGNING_KEY_K2 / LICENSE_SIGNING_PUB_K2
 #   STRIPE_PRICE_ID                 # fallback products.stripe_price_id
+#
+# Do not reuse KV namespace c273cf8e9c864d5bbd46840db2a7f153 (legacy LICENSES).
+# Owner provision: bash scripts/provision-worker.sh --apply
 
 [vars]
 LICENSE_FROM_EMAIL = "DiskPrune <licenses@diskprune.com>"
@@ -36,3 +38,5 @@ SUPPORT_URL = "https://diskprune.com/support"
 REFUND_URL = "https://diskprune.com/refunds"
 DOWNLOAD_URL = "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest"
 CORS_ORIGIN = "https://diskprune.com"
+# Public verify key. Must equal PublicKeys.k1Base64. Private key is a secret.
+LICENSE_SIGNING_PUB_K1 = "Pt7d0fcPzVUt8HwHPrhk1SMxM/huFVepM/86gcVEj3k="

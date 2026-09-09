@@ -20,7 +20,7 @@ enum LicenseToken {
         var expiresAt: Date { Date(timeIntervalSince1970: TimeInterval(exp)) }
     }
 
-    enum Failure: Equatable {
+    enum Failure: Equatable, Error {
         case malformed
         case invalidHeader
         case unknownKid

@@ -1,4 +1,4 @@
-Last verified product commit: `6f3a11f6` (Phase 4 Worker). Phase 5 native licensing is in this tree. Gate 4 remains **PASS** on `2241cbe5`. Gate 3 is **not** PASS — production D1/KV/signing secrets and a live Stripe purchase are still required.
+Last verified product commit: `2afa67ba` (Phase 5 native licensing). Phase 6 production-infra prep is in this tree. Gate 4 remains **PASS** on `2241cbe5`. Gate 3 is **not** PASS — production D1/KV ids, Wrangler secrets, a deployed k1 private key, and a live Stripe purchase are still required.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -9,6 +9,7 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] `build-and-verify.sh` deleted
 - [x] CI jobs 1–5 added
 - [x] CI jobs 6–7 added (Worker tests; licensing token/crypto/idempotency)
+- [x] CI jobs 8–9 added (native T-TOK/T-KC/T-OFF evidence; public-key match)
 - [x] Guardrails pass locally (`scripts/ci-guardrails.sh`) and on `2241cbe5`
 - [x] `swift build` / `swift test` on macOS — evidence: GitHub Actions CI run 42 on `2241cbe5`
 
@@ -39,10 +40,12 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Worker tests T-WH-01…12, T-ENC-01…05, T-TOK-06/07, T-REF-01…06, T-SEAT-01/02, T-EMAIL-01…04, T-CHK-01/02
 - [x] Scan / autopsy / explanations do not consult `LicenseManager` (T-OFF-07)
 - [x] Native `Licensing/*` client — B-11 fixed; T-KC-01/02, T-DEV-01/02, T-TOK-01…07, T-OFF-01…05/07
-- [ ] Live Stripe + production D1/KV ids + Wrangler secrets (owner)
-- [ ] `PublicKeys.k1Base64` replaced with the deployed `LICENSE_SIGNING_PUB_K1` (owner)
+- [x] `PublicKeys.k1Base64` equals Worker `[vars] LICENSE_SIGNING_PUB_K1` (CI job 9). Value is a placeholder until `scripts/provision-worker.sh --apply`
+- [x] macOS CI job 8 executes named native licensing tests (pipefail; required-name evidence)
+- [ ] Live Stripe + production D1/KV ids + Wrangler secrets (owner: `bash scripts/provision-worker.sh --apply`)
+- [ ] `PublicKeys.k1Base64` replaced with a public key whose private key is the deployed `LICENSE_SIGNING_KEY_K1` (owner provisioner)
 
-**Gate 3: NOT PASS** — Worker and native client are in tree. Production secrets, a matching k1 public key, and a live purchase are still required. B-13 (`site/` success page) is Phase 7.
+**Gate 3: NOT PASS** — Worker and native client are in tree. Production D1/KV, a deployed k1 private key, and a live purchase are still required. B-13 (`site/` success page) is Phase 7.
 
 ## Gate 4 — Native UX
 

@@ -33,3 +33,11 @@ UI navigation (Design Guide PART 12): Overview · Cleanup · Snapshots. Scan is 
 Shared rules live in `/shared/storage-rules.json` only. The copy under `Knowledge/Resources/` is generated.
 
 Receipt UI shows three accounting lines: estimated recoverable, moved to Trash, storage immediately available.
+
+## Worker production (Phase 6 / Gate 3 prep)
+
+- D1 `diskprune-licenses` + KV `RATE_LIMITS` ids live in `worker/wrangler.toml`. Placeholders until `scripts/provision-worker.sh --apply`.
+- `LICENSE_SIGNING_PUB_K1` is `[vars]` (public) and must equal `PublicKeys.k1Base64`.
+- `LICENSE_SIGNING_KEY_K1`, `LICENSE_ENCRYPTION_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY` are Wrangler secrets only.
+- Native licensing tests: CI job 8. Public-key match: CI job 9.
+

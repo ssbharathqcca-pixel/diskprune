@@ -30,9 +30,20 @@ npm test                  # all worker tests
 npm run test:licensing    # T-ENC / T-TOK / T-WH
 ```
 
-`wrangler.toml` has placeholder D1 and KV ids. Owner must create the database and namespace, `wrangler secret put` the keys listed in that file, and apply `migrations/0001_init.sql`. Do not commit secrets.
+`wrangler.toml` D1 and KV ids are placeholders until the owner runs:
+
+```bash
+# Requires: npx wrangler login  (or CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID)
+# Optional env: STRIPE_WEBHOOK_SECRET  RESEND_API_KEY  STRIPE_PRICE_ID
+bash scripts/provision-worker.sh --check   # report only
+bash scripts/provision-worker.sh --apply   # create D1+KV, generate k1, put secrets, migrate, deploy
+```
+
+`--apply` writes the **public** k1 into `PublicKeys.k1Base64` and `[vars] LICENSE_SIGNING_PUB_K1`, and `wrangler secret put`s the private key (never committed). Commit the two public files afterwards. Do not reuse KV `c273cf8e9c864d5bbd46840db2a7f153`.
 
 `GET /key-lookup` is gone. Checkout status never returns a key.
+
+CI job 9 (`node scripts/check-licensing-config.mjs`) asserts the public keys match and that no PKCS#8 blob is in source.
 
 ## Native licensing (Phase 5)
 
@@ -44,8 +55,9 @@ Activate / refresh / release talk to `https://api.diskprune.com`. Refresh is
 at most once per 24 h; network failure is a silent no-op. An expired-but-valid
 token is sent to `/refresh` without re-entering the key.
 
-`PublicKeys.k1Base64` must be replaced with the deployed `LICENSE_SIGNING_PUB_K1`
-before a signed release. The private key never belongs in this repository.
+`PublicKeys.k1Base64` must equal `worker/wrangler.toml` `[vars] LICENSE_SIGNING_PUB_K1`.
+The provisioner replaces both with a production pair. The private key never belongs
+in this repository.
 
 ## Running checks
 
@@ -53,6 +65,8 @@ before a signed release. The private key never belongs in this repository.
 node scripts/validate-rules.mjs
 bash scripts/sync-rules.sh
 bash scripts/ci-guardrails.sh
+node scripts/check-licensing-config.mjs
+bash scripts/provision-worker.sh --check
 cd worker && npm test
 cd app && swift test   # macOS
 ```

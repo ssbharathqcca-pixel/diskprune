@@ -13,9 +13,12 @@ build/
 shared/*.generated.json
 *.p12
 *.p8
+*.pem
+*.pkcs8
 .env
 .env.*
 !.env.example
+worker/.dev.vars
 .idea/
 .vscode/
 visual-qa-shots/

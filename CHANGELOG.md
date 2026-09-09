@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Production infrastructure (Phase 6 / Gate 3 prep)
+
+- `LicenseToken.Failure` now conforms to `Error` so `Result<Claims, Failure>` compiles under `swift build` of the executable (CI job 1, `package-macos.sh`, Visual QA). Job 2 on `2afa67ba` was a false green: `swift test | tee` dropped the compiler exit code on macos-latest.
+- CI `defaults.run.shell` is `bash -eo pipefail`. Job 8 runs `LicenseTokenTests|KeychainLicenseTests|OfflineLicenseTests` and fails unless T-TOK-01…07, T-KC, T-DEV, T-OFF-01…05/07 appear as passed. Job 9 asserts `PublicKeys.k1Base64` equals `wrangler.toml [vars] LICENSE_SIGNING_PUB_K1` and that no PKCS#8 private key is in source.
+- `LICENSE_SIGNING_PUB_K1` is public configuration in `[vars]`, not a secret. The matching PKCS#8 private key remains `wrangler secret put LICENSE_SIGNING_KEY_K1`.
+- Owner provisioner: `scripts/provision-worker.sh --check|--apply`. Creates D1 `diskprune-licenses` and KV `RATE_LIMITS`, refuses legacy LICENSES KV `c273cf8e9c864d5bbd46840db2a7f153`, generates k1 in memory, puts secrets via stdin, applies migrations, deploys. Private keys are never printed or written to disk.
+- This sandbox cannot authenticate to Cloudflare. D1/KV ids stay placeholders until the owner runs `--apply`. Gate 3 is not PASS.
+
 ### Native licensing (Phase 5)
 
 - Deleted top-level `LicenseManager.swift` (B-11: `isActivated` was true if any Keychain item existed).

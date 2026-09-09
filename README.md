@@ -86,9 +86,18 @@ email only — never a key or token.
 
 The native app verifies Ed25519 DPL tokens locally (`Licensing/`). Cleanup
 requires a verified `cleanup` entitlement. Scanning, autopsy, and explanations
-do not consult `LicenseManager`. Production D1/KV ids, Wrangler secrets, and
-the deployed `LICENSE_SIGNING_PUB_K1` (must replace `PublicKeys.k1Base64`) are
-owner-held and are not in this repository.
+do not consult `LicenseManager`.
+
+`PublicKeys.k1Base64` must equal `worker/wrangler.toml` `[vars] LICENSE_SIGNING_PUB_K1`
+(CI job 9). The matching private key is the Wrangler secret `LICENSE_SIGNING_KEY_K1`
+and is not in this repository. Production D1/KV ids are placeholders until:
+
+```bash
+bash scripts/provision-worker.sh --check
+bash scripts/provision-worker.sh --apply   # owner, authenticated Wrangler
+```
+
+Do not reuse KV namespace `c273cf8e9c864d5bbd46840db2a7f153`. Do not commit secrets.
 
 Worker tests (Node 22, `--experimental-sqlite`):
 

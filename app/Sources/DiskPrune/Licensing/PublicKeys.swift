@@ -2,11 +2,12 @@ import CryptoKit
 import Foundation
 
 /// Ed25519 public keys only. The matching PKCS#8 private keys are Wrangler
-/// secrets (`LICENSE_SIGNING_KEY_K1` / `K2`) and must never exist in this
-/// target, the app bundle, or the repository.
+/// secrets and must never exist in this target, the app bundle, or the repository.
 enum PublicKeys {
     /// Raw 32-byte Ed25519 public key, standard base64.
-    /// Replace with the deployed `LICENSE_SIGNING_PUB_K1` before a signed release.
+    /// Must equal `worker/wrangler.toml` `[vars] LICENSE_SIGNING_PUB_K1` (CI job 9).
+    /// Until `scripts/provision-worker.sh --apply` has run, this is a placeholder
+    /// whose private key is not deployed and cannot issue production tokens.
     static let k1Base64 = "Pt7d0fcPzVUt8HwHPrhk1SMxM/huFVepM/86gcVEj3k="
 
     static let byKid: [String: Curve25519.Signing.PublicKey] = {

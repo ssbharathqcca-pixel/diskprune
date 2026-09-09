@@ -116,6 +116,31 @@ for f in "$SRC/UI/ReceiptView.swift" "$SRC/UI/CleanupPlanView.swift"; do
   fi
 done
 
+# Licensing: private signing key must never be in source. Public key lives in
+# PublicKeys.swift and wrangler.toml [vars] only (scripts/check-licensing-config.mjs).
+if [[ -f "$ROOT/worker/wrangler.toml" ]]; then
+  if awk '
+    BEGIN { in_vars=0 }
+    /^\[vars\]/ { in_vars=1; next }
+    /^\[/ { in_vars=0 }
+    in_vars && $0 !~ /^[[:space:]]*#/ && $0 ~ /^[[:space:]]*LICENSE_SIGNING_KEY_K[12][[:space:]]*=/ { found=1 }
+    END { exit found ? 0 : 1 }
+  ' "$ROOT/worker/wrangler.toml"; then
+    fail "LICENSE_SIGNING_KEY_K1/K2 must not be assigned in wrangler.toml [vars]"
+  fi
+  if grep -n 'id = "c273cf8e9c864d5bbd46840db2a7f153"' "$ROOT/worker/wrangler.toml" >/dev/null 2>&1; then
+    fail "RATE_LIMITS must not reuse legacy LICENSES KV c273cf8e9c864d5bbd46840db2a7f153"
+  fi
+fi
+pkcs8_hits="$(grep -RIn 'MC4CAQAwBQYDK2Vw\|BEGIN PRIVATE KEY' \
+  "$SRC" \
+  "$WORKER_SRC" \
+  --include='*.swift' --include='*.js' --include='*.toml' --include='*.sql' || true)"
+if [[ -n "$pkcs8_hits" ]]; then
+  printf '%s\n' "$pkcs8_hits" >&2
+  fail "PKCS#8 / PEM private-key material is prohibited in app Sources and worker/src"
+fi
+
 if [[ "$FAIL" -ne 0 ]]; then
   note "Guardrails failed."
   exit 1

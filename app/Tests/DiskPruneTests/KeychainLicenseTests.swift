@@ -51,8 +51,10 @@ final class KeychainLicenseTests: XCTestCase {
         XCTAssertFalse(identity.contains("kIOPlatformUUIDKey"))
         XCTAssertFalse(identity.contains("IOPlatformUUID"))
         let pub = try String(contentsOf: root.appendingPathComponent("Licensing/PublicKeys.swift"), encoding: .utf8)
-        XCTAssertFalse(pub.contains("LICENSE_SIGNING_KEY_K1"))
+        XCTAssertFalse(pub.contains("MC4CAQAwBQYDK2Vw"), "PKCS#8 Ed25519 private key must not be in PublicKeys.swift")
+        XCTAssertFalse(pub.contains("BEGIN PRIVATE"))
         XCTAssertTrue(pub.contains("PublicKey"))
+        XCTAssertTrue(pub.contains("k1Base64"))
     }
 
     func testKeychainUsesServiceAndThisDeviceOnly() throws {

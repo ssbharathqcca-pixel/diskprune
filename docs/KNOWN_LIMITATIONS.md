@@ -18,10 +18,10 @@ Honest list. Do not hide these in marketing.
 
 - Legacy `ScannerActor.trash(urls:)`, `ContentView`, and `SafetyRules` removed after the new UI was CI-green (Rule 18).
 - B-11 is fixed: cleanup entitlement requires a verified DPL token. A Keychain item is not a license.
-- Worker B-12 is fixed in source: Stripe `constructEventAsync`, D1 idempotent fulfillments, encrypted keys, no `GET /key-lookup`. Production deploy still needs owner-held D1/KV ids and Wrangler secrets.
-- `PublicKeys.k1Base64` is a placeholder Ed25519 public key. Owner must replace it with the deployed `LICENSE_SIGNING_PUB_K1` before a signed release. The matching private key is a Wrangler secret and is not in this repository.
+- Worker B-12 is fixed in source: Stripe `constructEventAsync`, D1 idempotent fulfillments, encrypted keys, no `GET /key-lookup`. Production D1/KV ids and Wrangler secrets are owner-held (`scripts/provision-worker.sh --apply`). This sandbox cannot authenticate to Cloudflare.
+- `PublicKeys.k1Base64` currently matches `wrangler.toml [vars] LICENSE_SIGNING_PUB_K1`, but both are a placeholder whose private key is **not** deployed. The owner provisioner generates the production pair. The private key is a Wrangler secret and is not in this repository.
 - Website success page in `site/` still fabricates keys (B-13). `site/` is deleted only in commit 7.7 after the Astro port is verified.
-- Release pipeline is still ad-hoc signed, arm64-only (Phase 6).
+- Universal / Developer ID / notarized release (handoff Phase 6.1/6.2, Gate 5) is not started. The packaging pipeline is still ad-hoc signed, arm64-only.
 - This Linux builder cannot compile Swift, sign, or notarize.
 
 ## Environment

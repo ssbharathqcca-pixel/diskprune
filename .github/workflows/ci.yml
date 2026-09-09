@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# macos-latest historically ran `bash -e` without pipefail, so
+# `swift test | tee log` reported success on 2afa67ba while the compiler failed.
+defaults:
+  run:
+    shell: bash --noprofile --norc -eo pipefail {0}
+
 jobs:
   swift-build:
     name: 1 Swift build (debug)
@@ -26,7 +32,14 @@ jobs:
       - name: Swift unit tests
         run: |
           cd app
-          swift test 2>&1 | tee ../test.log || (echo '```' >> $GITHUB_STEP_SUMMARY; cat ../test.log >> $GITHUB_STEP_SUMMARY; echo '```' >> $GITHUB_STEP_SUMMARY; exit 1)
+          if ! swift test 2>&1 | tee ../test.log; then
+            {
+              echo '```'
+              cat ../test.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
   guardrails:
     name: 3 Destructive-operation guardrails
@@ -88,3 +101,60 @@ jobs:
         run: |
           npm ci
           npm run test:licensing
+
+  native-licensing-tests:
+    name: 8 Native Swift licensing tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: T-TOK / T-KC / T-OFF
+        run: |
+          cd app
+          swift test --filter 'LicenseTokenTests|KeychainLicenseTests|OfflineLicenseTests' 2>&1 | tee ../native-licensing.log
+          {
+            echo "## Native licensing tests"
+            echo '```'
+            grep -E "Test Case .* (passed|failed)" ../native-licensing.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          missing=0
+          for name in \
+            testTOK01_validTokenVerifies \
+            testTOK02_bitFlippedSignatureRejected \
+            testTOK03_unknownKid \
+            testTOK04_wrongDevice \
+            testTOK05_expiredToken \
+            testTOK06_k2TokenValidWithTwoKeyMap \
+            testTOK07_reorderedPayloadJSONStillValid \
+            testKC01_genericPasswordDoesNotEnableCleanup \
+            testKC02_deletingDeviceIdIssuesNewUUID \
+            testDEV01_freshInstallCreatesDeviceRow \
+            testDEV02_secondLaunchReusesUUID \
+            testB11_isActivatedPresenceAPIRemoved \
+            testOFF01_validTokenOfflineStillAllowsCleanup \
+            testOFF02_expiredTokenDisablesCleanupButScanWorks \
+            testOFF03_clockRollbackFailsOpen \
+            testOFF04_deadlinePassedStillOfflineDisablesCleanup \
+            testOFF05_refreshAfterExpiryDoesNotNeedKeyReentry \
+            testOFF07_freeTierNeverConsultsLicenseManager
+          do
+            if ! grep -E "Test Case .*${name}.*passed" ../native-licensing.log >/dev/null; then
+              echo "MISSING OR FAILED: $name" >&2
+              missing=1
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then
+            echo "Required native licensing tests did not pass. See native-licensing.log." >&2
+            exit 1
+          fi
+
+  licensing-config:
+    name: 9 Public-key match / no secret leak
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: PublicKeys.k1 == Worker LICENSE_SIGNING_PUB_K1
+        run: node scripts/check-licensing-config.mjs

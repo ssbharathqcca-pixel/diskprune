@@ -85,6 +85,14 @@ Append-only. Record decisions actually made during implementation.
 - Consequences: Production `PublicKeys.k1` must match Worker `LICENSE_SIGNING_PUB_K1` before a signed release.
 
 
+## DEC-014 — Public k1 is wrangler [vars]; private k1 is a secret; D1/KV ids come from the owner provisioner
+
+- Date: 2026-09-09
+- Status: accepted (Phase 6 / Gate 3 prep)
+- Decision: `LICENSE_SIGNING_PUB_K1` is public Worker configuration in `wrangler.toml` `[vars]` and must exactly equal `PublicKeys.k1Base64`. CI job 9 fails on mismatch or PKCS#8 material in source. The PKCS#8 private key is only `wrangler secret put LICENSE_SIGNING_KEY_K1`. Production D1 `diskprune-licenses` and KV `RATE_LIMITS` ids are written by `scripts/provision-worker.sh --apply` on an authenticated Wrangler session. The retired LICENSES KV `c273cf8e9c864d5bbd46840db2a7f153` is never reused as RATE_LIMITS. This builder does not generate a production keypair (the private key would transit chat/sandbox logs).
+- Rationale: A public verify key in git is required for the native app and for a mechanical match check. Fabricating D1/KV ids or committing secrets is forbidden. `swift test | tee` without pipefail produced a false-green job 2 on `2afa67ba`.
+- Rejected: Putting the private key in `[vars]`; generating the production pair in this sandbox; failing CI on D1/KV placeholders before the owner can provision; handoff 6.1/6.2 notarization as this Phase 6.
+
 ## DEC-010 — Receipt UI has three accounting lines
 
 - Date: 2026-09-08
