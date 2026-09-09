@@ -1,4 +1,4 @@
-Last verified commit: `583f78e8` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 21 SUCCESS, catalog skipped live ingest). Gate 4 remains NOT PASS. Post-ingest List selection writeback fix is in flight.
+Last verified commit: `583f78e8` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 21 SUCCESS, catalog skipped live ingest). `2f983e21` failed to compile (missing `self` in `sidebarSelection`). Gate 4 remains NOT PASS. Post-ingest destination writeback fix is in flight.
 
 An item is `[x]` only after its acceptance evidence exists.
 

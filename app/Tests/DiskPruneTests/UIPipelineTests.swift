@@ -86,11 +86,11 @@ final class UIPipelineTests: XCTestCase {
         let hook = session.objectWillChange.sink { fires += 1 }
         _ = hook
         let baseline = fires
-        session.sidebarSelection.wrappedValue = nil
+        session.destination = .overview
         session.sidebarSelection.wrappedValue = .overview
-        XCTAssertEqual(fires, baseline, "nil / same destination must not publish")
+        XCTAssertEqual(fires, baseline, "same destination must not publish")
         XCTAssertEqual(session.destination, .overview)
-        session.sidebarSelection.wrappedValue = .cleanup
+        session.destination = .cleanup
         XCTAssertEqual(fires, baseline + 1)
         session.sidebarSelection.wrappedValue = .cleanup
         XCTAssertEqual(fires, baseline + 1)

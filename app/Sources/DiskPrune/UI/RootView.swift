@@ -48,7 +48,7 @@ struct RootView: View {
     }
 
     private var sidebar: some View {
-        // Optional selection Binding: see AppSession.sidebarSelection.
+        // Non-optional selection Binding: see AppSession.sidebarSelection.
         List(selection: session.sidebarSelection) {
             Label("Overview", systemImage: "chart.pie")
                 .foregroundStyle(.primary)

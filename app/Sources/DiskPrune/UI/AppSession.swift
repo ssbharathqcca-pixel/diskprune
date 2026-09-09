@@ -34,7 +34,19 @@ final class AppSession: ObservableObject {
     let knowledge: StorageKnowledge
 
     @Published var phase: Phase = .idle
-    @Published var destination: SidebarDestination = .overview
+    /// Not `@Published`. Assigning the same value to `@Published` still
+    /// republishes. `List(selection:)` writes `nil` or the current destination
+    /// back when the coverage-driven Storage section appears after `ingestScan`.
+    /// That republish rebuilds the sidebar on the same RunLoop turn and never
+    /// returns (`1ecd789b`, even with destination=Cleanup). `willSet` notifies
+    /// only on a real change. Storage sidebar and Autopsy are unchanged.
+    var destination: SidebarDestination = .overview {
+        willSet {
+            if newValue != destination {
+                objectWillChange.send()
+            }
+        }
+    }
     @Published var activeProbe: String?
     @Published var completedProbes: [String] = []
     @Published var probeBytes: [String: Int64] = [:]
@@ -71,18 +83,15 @@ final class AppSession: ObservableObject {
         }
     }
 
-    /// `List(selection:)` is `Binding<SelectionValue?>`. During a rebuild it
-    /// writes `nil` or the current value back. Assigning `@Published
-    /// destination` on those no-ops republishes, SwiftUI rebuilds the sidebar,
-    /// and the loop never returns — that is the post-`ingestScan` hang
-    /// (`1ecd789b`: ingest returns, next RunLoop spin hangs even on Cleanup).
-    var sidebarSelection: Binding<SidebarDestination?> {
+    /// `List(selection:)` on this SDK takes `Binding<SelectionValue>` (the
+    /// original `$session.destination` overload). A `Binding<SelectionValue?>`
+    /// would let List write `nil` during a rebuild and fight `get` forever.
+    /// Same-value assigns are filtered by `destination`'s `willSet`. Explicit
+    /// `self` is required (class, not View).
+    var sidebarSelection: Binding<SidebarDestination> {
         Binding(
-            get: { destination },
-            set: { newValue in
-                guard let newValue, newValue != destination else { return }
-                destination = newValue
-            }
+            get: { self.destination },
+            set: { self.destination = $0 }
         )
     }
 

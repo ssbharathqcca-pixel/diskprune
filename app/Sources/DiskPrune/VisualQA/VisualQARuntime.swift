@@ -67,7 +67,7 @@ private enum VisualQACatalog {
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
         "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
-        "Post-ingest hang: List(selection:) writeback onto @Published destination when the Storage section appears. sidebarSelection ignores nil/no-op. Hosted StorageAutopsyView previously hung at NSHostingView.contentView.",
+        "Post-ingest hang: List(selection:) writeback onto @Published destination when the Storage section appears. destination notifies only on a real change; selection Binding stays non-optional. Hosted StorageAutopsyView previously hung at NSHostingView.contentView.",
     ]
     private static var auxWindow: NSWindow?
     private static var publishCount = 0
