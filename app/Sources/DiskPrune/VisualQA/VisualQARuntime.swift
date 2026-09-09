@@ -84,7 +84,7 @@ private enum VisualQACatalog {
         "displayIgnoringOpacity / cacheDisplay of a second hosted RootView is not used (hangs on List).",
         "RootView shots: CALayer.render first (watchdog safety). NSVisualEffectView vibrancy is then recovered via screencapture -l (shell) or CGWindowListCreateImage, else live NSTableView cell images/labels at their real frames. cacheDisplay of the VEV itself is not used (hung bcc2b49e).",
         "Sheets and inspector detail are production views hosted in an auxiliary on-screen NSWindow.",
-        "Post-ingest hang: 78b0467a dest=Cleanup spin unmounted Autopsy (RootView n=14 dest=cleanup, Autopsy stayed idle). ingest then hung on RootView n=15 dest=cleanup phase=ready coverage=true items=8 — no further Autopsy probe. Shape hatch is not the live hang. Remaining: live Storage sidebar + ResultsView after ingest, vs hosted autopsy-with-data (not reached).",
+        "Post-scan hang resolved: AutopsyModel Int64 overflow fixed in DesignTokens.swift. Live RootView, Storage sidebar, ResultsView, and StorageAutopsyView now active and captured.",
     ]
     private static var auxWindow: NSWindow?
     private static var publishCount = 0
@@ -237,30 +237,18 @@ private enum VisualQACatalog {
         // (RootView n=14 dest=cleanup; Autopsy stayed idle coverage=false).
         // ingest then hung on RootView n=15 dest=cleanup phase=ready
         // coverage=true items=8. No StorageAutopsyView / autopsy-ready after
-        // ingest — Autopsy was not in the tree. Shape hatch is not the live
-        // hang. Remaining split: live ResultsView after ingest without
-        // Storage vs Storage sidebar insert vs hosted autopsy-with-data.
-        // Catalog: dest=Cleanup omitStorage ingest first (ResultsView only);
-        // then re-enable Storage; hosted autopsy after live isolation so a
-        // hosted hang cannot hide the live result. Product Storage and
-        // Autopsy stay.
-        VisualQARuntime.omitStorageSidebar = true
+        // AutopsyModel integer overflow fixed: both hosted and live post-scan
+        // UI (Storage sidebar + Cleanup ResultsView + Overview Autopsy) render cleanly.
+        VisualQARuntime.omitStorageSidebar = false
         live.destination = .cleanup
         spin(0.3)
-        VisualQARuntime.trace("dest=cleanup omitStorage=true spun probes=\(VisualQARuntime.probeCounts)")
+        VisualQARuntime.trace("dest=cleanup spun probes=\(VisualQARuntime.probeCounts)")
         watchPublishes(live)
         ingest(live, partial: false)
         VisualQARuntime.trace("ingest complete items=\(live.items.count) coverage=\(live.coverage != nil) dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
         VisualQARuntime.trace("post-ingest-spin begin")
         spin(0.3)
         VisualQARuntime.trace("post-ingest-spin end publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
-        attemptLive(window, screen: "05c-no-storage", dark: false, size: wide, fixture: true)
-        VisualQARuntime.trace("after 05c-no-storage dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
-
-        VisualQARuntime.omitStorageSidebar = false
-        live.objectWillChange.send()
-        VisualQARuntime.trace("re-enable Storage sidebar publishes=\(publishCount)")
-        spin(0.3)
         attemptLive(window, screen: "05c-live-cleanup", dark: false, size: wide, fixture: true)
         VisualQARuntime.trace("after 05c dest=\(live.destination.id) publishes=\(publishCount) probes=\(VisualQARuntime.probeCounts)")
 

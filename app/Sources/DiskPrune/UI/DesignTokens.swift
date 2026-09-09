@@ -247,7 +247,8 @@ struct AutopsyModel: Equatable {
             for bucket in CategoryBucket.allCases {
                 let w = weights[bucket] ?? 0
                 guard w > 0 else { continue }
-                shares.append(CategoryShare(bucket: bucket, bytes: classifiedBytes * w / weightTotal))
+                let shareBytes = Int64(Double(classifiedBytes) * (Double(w) / Double(weightTotal)))
+                shares.append(CategoryShare(bucket: bucket, bytes: shareBytes))
             }
         }
         if unclassifiedScannedBytes > 0 {

@@ -75,4 +75,43 @@ final class CoveragePresentationTests: XCTestCase {
         let inf = HatchLines().path(in: CGRect(x: 0, y: 0, width: CGFloat.infinity, height: 12))
         XCTAssertTrue(inf.isEmpty)
     }
+
+    func testAutopsyModelDoesNotOverflowWithRealisticGigabyteCounts() {
+        let xcodeDerived = TestSupport.makeItem(
+            url: URL(fileURLWithPath: "/Users/tester/Library/Developer/Xcode/DerivedData/Demo"),
+            fileID: FileID(dev: 1, ino: 11),
+            onDiskBytes: 38_400_000_000,
+            category: .developerBuild,
+            knowledgeID: "xcode-deriveddata"
+        )
+        let userCaches = TestSupport.makeItem(
+            url: URL(fileURLWithPath: "/Users/tester/Library/Caches/user"),
+            fileID: FileID(dev: 1, ino: 12),
+            onDiskBytes: 6_200_000_000,
+            category: .applicationCache,
+            knowledgeID: "user-caches"
+        )
+        let coverage = StorageCoverage(
+            volumeTotalBytes: 500_000_000_000,
+            volumeAvailableBytes: 80_000_000_000,
+            classifiedBytes: 80_000_000_000,
+            unclassifiedScannedBytes: 20_000_000_000,
+            permissionLimitedPaths: [],
+            cleanupCandidateBytes: 12_400_000_000
+        )
+        let model = AutopsyModel(
+            coverage: coverage,
+            items: [xcodeDerived, userCaches],
+            volumeName: "Macintosh HD",
+            cancelled: false
+        )
+        XCTAssertEqual(model.categoryShares.count, 2)
+        let developerShare = model.categoryShares.first(where: { $0.bucket == .developer })
+        let cachesShare = model.categoryShares.first(where: { $0.bucket == .caches })
+        XCTAssertNotNil(developerShare)
+        XCTAssertNotNil(cachesShare)
+        XCTAssertGreaterThan(developerShare?.bytes ?? 0, 0)
+        XCTAssertGreaterThan(cachesShare?.bytes ?? 0, 0)
+        XCTAssertEqual(model.classifiedBytes, 80_000_000_000)
+    }
 }
