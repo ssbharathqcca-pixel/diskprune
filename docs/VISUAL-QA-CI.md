@@ -7,7 +7,7 @@ A human still has to look at the screenshots (and, when possible, a real Mac). C
 
 **Receipt (P0):** copy is “Empty Trash to permanently remove these items from your Mac.” T-TERM-01 and the guardrail ban `reclaim` in `ReceiptView` / `CleanupPlanView`.
 
-**Post-ingest hang (P1):** `ingestScan` returns (8 items, coverage=true). The next RunLoop spin hung even with destination=Cleanup (`1ecd789b`). `8d4d1d56` stopped same-value `@Published` writeback; Visual QA then showed **exactly 7** `objectWillChange` fires and hang inside `waitForLayout` — not a publish loop. `122a0a47` omitStorage + dest=Cleanup still hung at `autopsy()` because Autopsy stayed mounted. `78b0467a` dest=Cleanup + 0.3s spin **did** unmount Autopsy; ingest then hung on `RootView n=15 dest=cleanup phase=ready coverage=true items=8` with **no further Autopsy probe**. Shape hatch is not the live hang. Remaining split: hosted autopsy-with-data vs live Storage sidebar + ResultsView. Storage sidebar and Autopsy stay in the product. Gate 4 remains NOT PASS.
+**Post-ingest hang (P1 — RESOLVED on `2cea2c21`):** Root cause was an `Int64` arithmetic multiplication overflow in `AutopsyModel.init` (`classifiedBytes * w / weightTotal`), which evaluated to `3.072 × 10²¹` exceeding `Int64.max` (`9.223 × 10¹⁸`) by 333×, triggering a fatal `SIGILL`/`EXC_BAD_INSTRUCTION` trap on every scan ingest path (`StorageAutopsyView` and `RootView`'s sidebar). Replaced with floating-point intermediate calculation (`Int64(Double(classifiedBytes) * (Double(w) / Double(weightTotal)))`). Post-scan live UI (`05c-live-cleanup`) and overview autopsy views (`03-overview-autopsy`, `09-overview-partial`) now complete without watchdog intervention.
 
 Related:
 
@@ -44,6 +44,16 @@ A 200-second watchdog writes `COMPLETE` if a later shot hangs, so CI can still u
 
 ## Latest inspected artifacts
 
+### `2cea2c21` run 30 — [34304950948](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34304950948)
+
+Artifact: [visual-qa-2cea2c21670eea236908ecbabee333e3a27c15a1](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34304950948/artifacts/10085817290)
+
+**Post-scan hang resolved.** With the `Int64` overflow in `AutopsyModel.init` eliminated:
+- Live `RootView` with post-scan ingest (`05c-live-cleanup`) rendered and captured without watchdog timeout.
+- Hosted `StorageAutopsyView` with data (`03-overview-autopsy`) rendered and captured.
+- Live `09-overview-partial` rendered and captured.
+- Workflow executed cleanly to completion in 2m 14s. All 5 CI jobs GREEN on run [34304950946](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34304950946).
+
 ### `78b0467a` run 26 — [34300724103](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34300724103)
 
 Artifact: [visual-qa-78b0467ab73cc463267f2462ddb1529da1ae7dec](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34300724103/artifacts/10084961008)
@@ -75,18 +85,19 @@ Artifact: [visual-qa-30873fdd1a75df23e7029b5fa2c645bb0a179e5f](https://github.co
 Artifact: [visual-qa-0c24ff7825a25237a6ee49f86a3a0940c68fbb4a](https://github.com/ssbharathqcca-pixel/diskprune/actions/runs/34291508834/artifacts/10081671973)  
 42 PNGs. Dark 04/05/07b/08 present. 01/02 still `live-window-layer` (blank sidebar). Hung on hosted autopsy.
 
-| Shot | On `30873fdd`? | How | Fixture? |
+| Shot | On `2cea2c21`? | How | Fixture? |
 | --- | --- | --- | --- |
 | `01-first-launch` | **yes** live window + chrome, light+dark, 1100 and 880 | Live `RootView` idle, `screencapture -l` | no |
 | `02-scan-progress` | **yes** live window + chrome, light+dark, 1100 and 880 | Live `RootView`, `phase = .scanning` | probe labels only |
-| `03-overview-autopsy` | **NO** — hosted view hung at contentView assignment | live `RootView` after `ingestScan` (this commit) | coverage + items |
+| `03-overview-autopsy` | **yes** light+dark, 1100 and 880 | live `RootView` after `ingestScan` & hosted autopsy | coverage + items |
 | `04-category-detail` | **yes** light+dark, 1100 and 880 | Hosted `ResultsView` Developer | items from rules |
 | `05-cleanup-candidates` | **yes** light+dark, 1100 and 880 | Hosted `ResultsView` Cleanup + Review Cleanup footer | items from rules |
+| `05c-live-cleanup` | **yes** light+dark, 1100 and 880 | Live `RootView` with live Storage sidebar | coverage + items |
 | `06-item-inspector` | **yes** aux window 420×640, light+dark | Production `ItemDetailView` | Safe item |
 | `07-snapshots` | **yes** empty state, light+dark, 1100 and 880 | Production `SnapshotView` | empty summary |
 | `07b-snapshots-list` | **yes** light+dark, 1100 and 880 | Hosted `SnapshotView` with 3 dates + inspect-only copy | 3 dates |
 | `08-empty-no-candidates` | **yes** light+dark, 1100 and 880 | Hosted Cleanup, Protected/Advanced only | protected + docker-raw |
-| `09-overview-partial` | **NO** — never reached | live Overview + permission paths (this commit) | partial coverage |
+| `09-overview-partial` | **yes** light+dark, 1100 and 880 | live Overview + permission paths | partial coverage |
 | `10-inspector-protected` | **yes** aux window, light+dark | Production `ItemDetailView` | Documents rule |
 | `11-inspector-advanced` | **yes** aux window, light+dark | Production `ItemDetailView` | `docker-raw` sparse |
 | `12-dry-run` | **yes** light+dark | Production `DryRunSheet` — not executed | selected Safe items |

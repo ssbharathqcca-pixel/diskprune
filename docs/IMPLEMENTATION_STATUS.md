@@ -1,4 +1,4 @@
-Last verified commit: `30374034` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 26 on `78b0467a` SUCCESS-with-watchdog). `78b0467a` dest=Cleanup spin unmounted Autopsy; ingest then hung on `RootView n=15 dest=cleanup phase=ready coverage=true items=8` (no Autopsy in the tree). Shape hatch is not the live hang. Gate 4 remains NOT PASS. Phase 4 is not started.
+Last verified commit: `2cea2c21` (CI jobs 1–5 GREEN; Build macOS App GREEN; Visual QA run 30 on `2cea2c21` SUCCESS with all post-scan screens captured without watchdog). Post-scan hang resolved by fixing Int64 overflow in `AutopsyModel.init`. Overview / Autopsy with data (03, 09) and live RootView (05c) now verified in CI. Gate 4 remaining items are human review / physical Mac verification. Phase 4 is not started.
 
 An item is `[x]` only after its acceptance evidence exists.
 
@@ -47,17 +47,17 @@ An item is `[x]` only after its acceptance evidence exists.
 - [x] Protected/advanced have no checkbox
 - [x] Packaging script + Visual QA protocol (`docs/VISUAL_QA.md`, `scripts/package-macos.sh`)
 - [x] CI screenshot workflow of the packaged app (`docs/VISUAL-QA-CI.md`) — **supplemental, not Gate 4 PASS**
-- [ ] Overview / Autopsy with data (`03`, `09`) in CI — **NOT TESTED** (idle Autopsy works; hosted autopsy-with-data not reached on `78b0467a`)
-- [ ] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **NOT TESTED** (`78b0467a` hung on RootView n=15 dest=cleanup phase=ready coverage=true items=8 after Autopsy unmounted)
+- [x] Overview / Autopsy with data (`03`, `09`) in CI — **captured on `2cea2c21`** (live RootView and hosted StorageAutopsyView rendered and captured)
+- [x] Live `RootView` after `ingestScan` (sidebar Storage section + in-window chrome) — **captured on `2cea2c21`** (`05c-live-cleanup` completed without watchdog)
 - [x] Sidebar `NSVisualEffectView` vibrancy in CI shots — **01/02 recovered on `30873fdd` via `screencapture -l`** (human still must review)
 - [ ] Visual QA on a real Mac (light/dark/narrow) — **NOT TESTED**
 - [ ] Human review of CI screenshots — **NOT TESTED**
 - [ ] Canvas comparison — **NOT TESTED**
 - [ ] Stranger comprehension test — **NOT TESTED**
 
-CI Visual QA evidence on `0c24ff78` (42 PNGs, both themes): first launch, scan progress, category, cleanup, empty cleanup, inspector (safe/protected/advanced), snapshots empty + dated, dry run, receipt, cleanup failure, settings. **Not** autopsy/overview-with-data.
+CI Visual QA evidence on `2cea2c21` (run 30): first launch, scan progress, category, cleanup, empty cleanup, inspector (safe/protected/advanced), snapshots empty + dated, dry run, receipt, cleanup failure, settings, live cleanup with active Storage sidebar, and Overview/Autopsy with data (03, 09).
 
-**Gate 4: NOT PASS.**
+**Gate 4: NOT PASS (Pending human visual review & physical Mac testing).**
 
 ## Gate 5 — Signed universal release
 
