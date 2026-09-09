@@ -95,7 +95,7 @@ final class CoveragePresentationTests: XCTestCase {
             volumeTotalBytes: 500_000_000_000,
             volumeAvailableBytes: 80_000_000_000,
             classifiedBytes: 80_000_000_000,
-            unclassifiedScannedBytes: 20_000_000_000,
+            unclassifiedScannedBytes: 0,
             permissionLimitedPaths: [],
             cleanupCandidateBytes: 12_400_000_000
         )
