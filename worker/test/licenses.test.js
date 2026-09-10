@@ -311,6 +311,18 @@ test("invalid activate format is 400 before any lookup", async () => {
   assert.equal((await readJson(res)).error, "INVALID_FORMAT");
 });
 
+test("T-ENT-FAILCLOSED corrupt entitlements_json does not grant cleanup", async () => {
+  const env = await makeEnv();
+  const { plaintext } = await paidLicense(env, { sessionId: "cs_ent" });
+  env.__sqlite.prepare("UPDATE licenses SET entitlements_json = 'not-json' WHERE stripe_session_id = 'cs_ent'").run();
+  const act = await readJson(
+    await fetchWorker(env, post("/v1/licenses/activate", { license_key: plaintext, device_id: "dev-ent" })),
+  );
+  assert.deepEqual(act.entitlements, []);
+  const payload = tokenPayload(act.token);
+  assert.deepEqual(payload.ent, []);
+});
+
 test("CORS is diskprune.com only, never *", async () => {
   const env = await makeEnv();
   const res = await fetchWorker(

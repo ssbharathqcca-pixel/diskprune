@@ -6,8 +6,7 @@ export const PRODUCT = {
   os: "macOS 14 Sonoma and later",
   bundleId: "com.diskprune.app",
   stripeUrl: "https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200",
-  dmgUrl:
-    "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest/download/DiskPrune.dmg",
+  dmgUrl: "https://diskprune.com/download",
   repoUrl: "https://github.com/ssbharathqcca-pixel/diskprune",
   apiActivate: "https://api.diskprune.com/v1/licenses/activate",
   demoKey: "PRUNE-DEMO-2026-LIFE",
@@ -28,7 +27,7 @@ export const COMPARISON = [
   },
   {
     feature: "APFS snapshots",
-    diskprune: "Yes — tmutil flush",
+    diskprune: "Inspect only — never deleted",
     dissect: "No",
     buddy: "No",
   },

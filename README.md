@@ -1,6 +1,6 @@
 # DiskPrune
 
-Native macOS storage intelligence. Scan free. Lifetime license **$14.99**.
+Native macOS storage intelligence. Scan free. Lifetime license **$19**.
 
 DiskPrune helps you understand why a Mac is full, then moves only what you
 approve to Trash. It does **not** permanently delete files, empty Trash,

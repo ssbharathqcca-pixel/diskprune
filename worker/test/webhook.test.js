@@ -207,3 +207,38 @@ test("GET /key-lookup is gone", async () => {
   const res = await fetchWorker(env, new Request("https://api.diskprune.com/key-lookup?session_id=cs_test_1"));
   assert.equal(res.status, 404);
 });
+
+test("T-WH-LINEITEMS live Payment Link payload (no line_items, no STRIPE_PRICE_ID) still fulfils seed SKU", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  const res = await fetchWorker(
+    env,
+    signedWebhook(checkoutEvent({ sessionId: "cs_plink", includeLineItems: false })),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 1);
+});
+
+test("T-WH-SOLE-SKU survives products.stripe_price_id UPDATE when payload has no line_items", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  env.__sqlite.prepare("UPDATE products SET stripe_price_id = 'price_live_real'").run();
+  const res = await fetchWorker(
+    env,
+    signedWebhook(checkoutEvent({ sessionId: "cs_updated", includeLineItems: false })),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 1);
+});
+
+test("T-EMAIL-05 retry does not email a revoked license", async () => {
+  const { retryFailedEmails } = await import("../src/email.js");
+  const env = await makeEnv();
+  env.__resendStatus = 500;
+  await fetchWorker(env, signedWebhook(checkoutEvent({ sessionId: "cs_revmail" })));
+  env.__sqlite.prepare("UPDATE licenses SET status = 'revoked', email_state = 'failed', email_attempts = 1, email_last_attempt_at = 0").run();
+  env.__emails.length = 0;
+  env.__resendStatus = 200;
+  await retryFailedEmails(env);
+  assert.equal(env.__emails.length, 0);
+});
