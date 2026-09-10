@@ -9,35 +9,119 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+# Tag GitHub Releases are created only by the notarized job, as drafts.
+# Ad-hoc Visual QA DMGs are never published as GitHub Releases.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  universal:
+    name: Universal binary (T-REL-01)
     runs-on: macos-14
-
+    timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Package app and DMG
-      run: bash scripts/package-macos.sh
-      env:
-        DISKPRUNE_VERSION: "1.0.0"
-        DISKPRUNE_BUILD: ${{ github.sha }}
+      - name: Universal app (unsigned, no Visual QA catalog)
+        run: bash scripts/release-macos.sh --universal-only
+        env:
+          DISKPRUNE_ALLOW_UNTAGGED: "1"
+          DISKPRUNE_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '0.0.0-dev' }}
+          DISKPRUNE_BUILD: ${{ github.run_number }}
 
-    - name: Upload DMG Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: DiskPrune-${{ github.sha }}
-        path: app/DiskPrune.dmg
-        if-no-files-found: error
+      - name: lipo -archs (mounted-app equivalent on the assembled bundle)
+        run: |
+          set -euo pipefail
+          bin=dist/release/DiskPrune.app/Contents/MacOS/DiskPrune
+          archs="$(lipo -archs "$bin")"
+          echo "lipo -archs => $archs"
+          case "$archs" in
+            "x86_64 arm64"|"arm64 x86_64") ;;
+            *) echo "T-REL-01 FAIL: $archs" >&2; exit 1 ;;
+          esac
+          if strings "$bin" | grep -q VisualQACatalog; then
+            echo "release binary must not contain VisualQACatalog" >&2
+            exit 1
+          fi
+          node scripts/check-licensing-config.mjs
 
-    - name: Publish GitHub Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v2
-      with:
-        files: app/DiskPrune.dmg
-        name: "DiskPrune ${{ github.ref_name }}"
-        generate_release_notes: true
-        draft: false
-        prerelease: false
+      - name: Upload unsigned universal app
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskPrune-universal-unsigned-${{ github.sha }}
+          path: dist/release/DiskPrune.app
+          if-no-files-found: error
+
+  visual-qa-adhoc:
+    name: Ad-hoc QA package (not a release)
+    runs-on: macos-14
+    timeout-minutes: 30
+    if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ad-hoc DiskPrune.dmg for Visual QA
+        run: bash scripts/package-macos.sh
+        env:
+          DISKPRUNE_VERSION: "0.0.0-dev"
+          DISKPRUNE_BUILD: ${{ github.sha }}
+      - name: Upload ad-hoc QA DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskPrune-adhoc-qa-${{ github.sha }}
+          path: app/DiskPrune.dmg
+          if-no-files-found: error
+
+  release:
+    name: Developer ID + notarize + staple
+    runs-on: macos-14
+    timeout-minutes: 90
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    env:
+      DEVELOPER_ID_CERT_P12: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+      DEVELOPER_ID_CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      DEVELOPER_ID_IDENTITY: ${{ secrets.DEVELOPER_ID_IDENTITY }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail closed if Apple secrets are absent
+        run: bash scripts/release-macos.sh --prereqs
+
+      - name: Universal, sign, notarize, staple, verify 1–9
+        run: bash scripts/release-macos.sh
+        env:
+          DISKPRUNE_VERSION: ${{ github.ref_name }}
+          DISKPRUNE_BUILD: ${{ github.ref_name }}.${{ github.run_number }}
+
+      - name: Upload notarized DMG + checksum + report
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskPrune-notarized-${{ github.ref_name }}
+          path: |
+            dist/release/DiskPrune.dmg
+            dist/release/DiskPrune.dmg.sha256
+            dist/release/verify-report.txt
+            dist/release/notarytool-log.json
+            dist/release/notarytool-dmg.txt
+          if-no-files-found: error
+
+      - name: Draft GitHub Release (not live until Gate 5 checks 10–12)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/release/DiskPrune.dmg
+            dist/release/DiskPrune.dmg.sha256
+          name: "DiskPrune ${{ github.ref_name }}"
+          generate_release_notes: true
+          draft: true
+          prerelease: true
+          body: |
+            Automated Gate 5 checks 1–9 ran against this DMG.
+            Gate 5 is **not PASS** until a clean Mac and an Intel Mac launch
+            the app from this DMG (checks 10–12). Do not undraft until then.
+            Verify `DiskPrune.dmg.sha256` before opening.

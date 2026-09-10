@@ -4,23 +4,31 @@ import SwiftUI
 @main
 struct DiskPruneApp: App {
     init() {
+#if DISKPRUNE_VISUAL_QA
         if VisualQARuntime.isEnabled {
             PreferencesStore.scanOnLaunch = false
         } else {
             LicenseManager.shared.start()
         }
         VisualQARuntime.trace("DiskPruneApp.init enabled=\(VisualQARuntime.isEnabled)")
+#else
+        LicenseManager.shared.start()
+#endif
     }
 
     var body: some Scene {
         WindowGroup {
             Group {
                 if let knowledge = try? StorageKnowledge.load() {
+#if DISKPRUNE_VISUAL_QA
                     if VisualQARuntime.isEnabled {
                         VisualQARuntime.root(knowledge: knowledge)
                     } else {
                         RootView(session: AppSession(knowledge: knowledge))
                     }
+#else
+                    RootView(session: AppSession(knowledge: knowledge))
+#endif
                 } else {
                     KnowledgeLoadErrorView()
                 }

@@ -59,8 +59,12 @@ See [`docs/CLEANUP_SAFETY.md`](docs/CLEANUP_SAFETY.md) and [`docs/KNOWN_LIMITATI
 Swift tests, guardrails, storage-rules checks, Worker tests, and licensing
 tests on every push.
 
-The macOS DMG workflow is ad-hoc signed and runner-arch. Universal Developer ID
-signing is Phase 6.
+The macOS **Visual QA** DMG workflow is ad-hoc signed and not a release.
+Universal Developer ID signing, hardened runtime, notarization, and stapling
+are [`docs/RELEASE.md`](docs/RELEASE.md) (Gate 5). That pipeline **fails
+closed** without Apple secrets — it never publishes an ad-hoc DMG as a GitHub
+Release. Gate 5 is not PASS until checks 1–9 pass against the mounted DMG and
+checks 10–12 pass on real Macs.
 
 ## Website
 
@@ -92,12 +96,8 @@ do not consult `LicenseManager`.
 
 `PublicKeys.k1Base64` must equal `worker/wrangler.toml` `[vars] LICENSE_SIGNING_PUB_K1`
 (CI job 9). The matching private key is the Wrangler secret `LICENSE_SIGNING_KEY_K1`
-and is not in this repository. Production D1/KV ids are placeholders until:
-
-```bash
-bash scripts/provision-worker.sh --check
-bash scripts/provision-worker.sh --apply   # owner, authenticated Wrangler
-```
+and is not in this repository. Production D1/KV ids are in `wrangler.toml`
+(`9d1259fe`).
 
 Do not reuse KV namespace `c273cf8e9c864d5bbd46840db2a7f153`. Do not commit secrets.
 
