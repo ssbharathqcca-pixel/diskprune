@@ -10,11 +10,11 @@ custom_domain = true
 [[d1_databases]]
 binding = "DB"
 database_name = "diskprune-licenses"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "82bf393e-f284-4bc1-a300-4ebcb17ed685"
 
 [[kv_namespaces]]
 binding = "RATE_LIMITS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "0dc1a238cd534f3eaa144eebda414699"
 
 [triggers]
 crons = ["0 */6 * * *"]
@@ -39,4 +39,4 @@ REFUND_URL = "https://diskprune.com/refunds"
 DOWNLOAD_URL = "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest"
 CORS_ORIGIN = "https://diskprune.com"
 # Public verify key. Must equal PublicKeys.k1Base64. Private key is a secret.
-LICENSE_SIGNING_PUB_K1 = "Pt7d0fcPzVUt8HwHPrhk1SMxM/huFVepM/86gcVEj3k="
+LICENSE_SIGNING_PUB_K1 = "bwDWn1ibch4eF1MY64LX4pgFIxaGhrOM9dPtS5LtTEU="

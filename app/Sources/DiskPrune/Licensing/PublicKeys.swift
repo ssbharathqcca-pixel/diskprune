@@ -8,7 +8,7 @@ enum PublicKeys {
     /// Must equal `worker/wrangler.toml` `[vars] LICENSE_SIGNING_PUB_K1` (CI job 9).
     /// Until `scripts/provision-worker.sh --apply` has run, this is a placeholder
     /// whose private key is not deployed and cannot issue production tokens.
-    static let k1Base64 = "Pt7d0fcPzVUt8HwHPrhk1SMxM/huFVepM/86gcVEj3k="
+    static let k1Base64 = "bwDWn1ibch4eF1MY64LX4pgFIxaGhrOM9dPtS5LtTEU="
 
     static let byKid: [String: Curve25519.Signing.PublicKey] = {
         var map: [String: Curve25519.Signing.PublicKey] = [:]
