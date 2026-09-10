@@ -141,6 +141,29 @@ if [[ -n "$pkcs8_hits" ]]; then
   fail "PKCS#8 / PEM private-key material is prohibited in app Sources and worker/src"
 fi
 
+# B-13 — success pages never fabricate keys or call /key-lookup
+for f in \
+  "$ROOT/web/src/pages/success.astro" \
+  "$ROOT/web/src/lib/checkout-status.mjs" \
+  "$ROOT/site/src/routes/success.tsx" \
+  "$ROOT/site/src/lib/license.ts"
+do
+  if [[ -f "$f" ]]; then
+    if grep -nE 'issueLicense|key-lookup|Generating your license' "$f" >/dev/null 2>&1; then
+      grep -nE 'issueLicense|key-lookup|Generating your license' "$f" >&2 || true
+      fail "B-13: $(basename "$f") must not fabricate keys or call /key-lookup"
+    fi
+    if grep -nE 'Payment received' "$f" >/dev/null 2>&1; then
+      grep -nE 'Payment received' "$f" >&2 || true
+      fail "B-13: 'Payment received' is forbidden without Stripe-confirmed paid status (do not hardcode it)"
+    fi
+  fi
+done
+if grep -RIn 'function issueLicense\|export function issueLicense' "$ROOT/site" "$ROOT/web" --include='*.ts' --include='*.tsx' --include='*.js' --include='*.mjs' --include='*.astro' >/dev/null 2>&1; then
+  grep -RIn 'function issueLicense\|export function issueLicense' "$ROOT/site" "$ROOT/web" --include='*.ts' --include='*.tsx' --include='*.js' --include='*.mjs' --include='*.astro' >&2 || true
+  fail "B-13: issueLicense() is prohibited"
+fi
+
 if [[ "$FAIL" -ne 0 ]]; then
   note "Guardrails failed."
   exit 1

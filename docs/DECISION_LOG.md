@@ -85,6 +85,13 @@ Append-only. Record decisions actually made during implementation.
 - Consequences: Production `PublicKeys.k1` must match Worker `LICENSE_SIGNING_PUB_K1` before a signed release.
 
 
+## DEC-015 — Success page is status-only (B-13)
+
+- Date: 2026-09-10
+- Status: accepted (Phase 7.5)
+- Decision: `web/src/pages/success.astro` (and `site/src/routes/success.tsx` until 7.7) call `GET /v1/checkout/:id/status` and render the handoff copy table. `issueLicense()` is deleted. The Worker response may contain only `payment_state`, `delivery_state`, `email_masked`. Paid+pending polls 3× at 2 s. Missing/invalid `session_id` does not claim payment.
+- Rejected: Showing the key on the success page; calling `/key-lookup`; treating a URL param as proof of payment; generating keys in `localStorage`.
+
 ## DEC-014 — Public k1 is wrangler [vars]; private k1 is a secret; D1/KV ids come from the owner provisioner
 
 - Date: 2026-09-09

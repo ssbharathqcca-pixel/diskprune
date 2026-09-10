@@ -20,7 +20,7 @@ Honest list. Do not hide these in marketing.
 - B-11 is fixed: cleanup entitlement requires a verified DPL token. A Keychain item is not a license.
 - Worker B-12 is fixed in source: Stripe `constructEventAsync`, D1 idempotent fulfillments, encrypted keys, no `GET /key-lookup`. Production D1/KV ids and Wrangler secrets are owner-held (`scripts/provision-worker.sh --apply`). This sandbox cannot authenticate to Cloudflare.
 - `PublicKeys.k1Base64` currently matches `wrangler.toml [vars] LICENSE_SIGNING_PUB_K1`, but both are a placeholder whose private key is **not** deployed. The owner provisioner generates the production pair. The private key is a Wrangler secret and is not in this repository.
-- Website success page in `site/` still fabricates keys (B-13). `site/` is deleted only in commit 7.7 after the Astro port is verified.
+- B-13 is fixed on the success pages: they call `GET /v1/checkout/:id/status` and never generate or display a key. `site/` as a whole remains the Grok scaffold and is deleted only in commit 7.7 after the Astro port (7.1–7.6) is verified.
 - Universal / Developer ID / notarized release (handoff Phase 6.1/6.2, Gate 5) is not started. The packaging pipeline is still ad-hoc signed, arm64-only.
 - This Linux builder cannot compile Swift, sign, or notarize.
 

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Website success page (Phase 7.5 / B-13)
+
+- `web/src/pages/success.astro` is status-only: `GET https://api.diskprune.com/v1/checkout/{session_id}/status`. It never fabricates, displays, or stores a license key. Copy follows the handoff table (paid+sent, paid+pending with 3×2s poll, unpaid, failed/unknown). `site/src/routes/success.tsx` no longer calls `issueLicense()`; that function is deleted.
+- Worker checkout-status tests: T-CHK-01…06 (fake, paid, unpaid pending, failed, reload, paid+email-failed). CI job 10 runs `web/test/success.test.mjs` (T-WEB-05).
+- Gate 3 is not PASS. Live Stripe purchase + Mac activation remain.
+
 ### Production infrastructure (Phase 6 / Gate 3 prep)
 
 - `LicenseToken.Failure` now conforms to `Error` so `Result<Claims, Failure>` compiles under `swift build` of the executable (CI job 1, `package-macos.sh`, Visual QA). Job 2 on `2afa67ba` was a false green: `swift test | tee` dropped the compiler exit code on macos-latest.

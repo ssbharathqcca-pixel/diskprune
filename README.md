@@ -82,7 +82,9 @@ email only — never a key or token.
 | `POST /v1/licenses/refresh` | Renew; expired-but-valid tokens accepted; released/revoked blocked |
 | `POST /v1/licenses/release` | Free a seat |
 | `POST /v1/licenses/resend` | Always `200 {ok:true}` (no enumeration) |
-| `GET /v1/checkout/:id/status` | Status only |
+| `GET /v1/checkout/:id/status` | Status only (`payment_state`, `delivery_state`, masked email — never a key) |
+
+The success page (`web/src/pages/success.astro`) uses that status endpoint. It does not generate or display a license key.
 
 The native app verifies Ed25519 DPL tokens locally (`Licensing/`). Cleanup
 requires a verified `cleanup` entitlement. Scanning, autopsy, and explanations

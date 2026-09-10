@@ -241,9 +241,67 @@ test("T-CHK-02 paid session returns masked email and no key", async () => {
   assert.equal(res.status, 200);
   const body = await readJson(res);
   assert.equal(body.payment_state, "paid");
+  assert.equal(body.delivery_state, "sent");
   assert.equal(body.email_masked, "a•••@example.com");
+  assert.deepEqual(Object.keys(body).sort(), ["delivery_state", "email_masked", "payment_state"]);
   assert.equal("license_key" in body, false);
   assert.equal("token" in body, false);
+  assert.equal("encrypted_key" in body, false);
+});
+
+test("T-CHK-03 pending unpaid checkout is unpaid/pending with no key", async () => {
+  const env = await makeEnv();
+  const resPay = await fetchWorker(
+    env,
+    signedWebhook(checkoutEvent({ payment_status: "unpaid", sessionId: "cs_pending" })),
+  );
+  assert.equal(resPay.status, 200);
+  const res = await fetchWorker(env, new Request("https://api.diskprune.com/v1/checkout/cs_pending/status"));
+  assert.equal(res.status, 200);
+  const body = await readJson(res);
+  assert.equal(body.payment_state, "unpaid");
+  assert.equal(body.delivery_state, "pending");
+  assert.equal(body.email_masked, null);
+  assert.equal("license_key" in body, false);
+  assert.equal(JSON.stringify(body).includes("PRUNE-"), false);
+});
+
+test("T-CHK-04 failed fulfillment is failed with no key", async () => {
+  const env = await makeEnv();
+  await fetchWorker(
+    env,
+    signedWebhook(checkoutEvent({ type: "checkout.session.async_payment_failed", sessionId: "cs_failstat" })),
+  );
+  const res = await fetchWorker(env, new Request("https://api.diskprune.com/v1/checkout/cs_failstat/status"));
+  assert.equal(res.status, 200);
+  const body = await readJson(res);
+  assert.equal(body.payment_state, "failed");
+  assert.equal(body.delivery_state, "failed");
+  assert.equal("license_key" in body, false);
+  assert.equal(JSON.stringify(body).includes("PRUNE-"), false);
+});
+
+test("T-CHK-05 paid session status is stable on reload", async () => {
+  const env = await makeEnv();
+  await paidLicense(env, { sessionId: "cs_reload", email: "ada@example.com" });
+  const a = await readJson(await fetchWorker(env, new Request("https://api.diskprune.com/v1/checkout/cs_reload/status")));
+  const b = await readJson(await fetchWorker(env, new Request("https://api.diskprune.com/v1/checkout/cs_reload/status")));
+  assert.deepEqual(a, b);
+  assert.equal(a.payment_state, "paid");
+  assert.equal("license_key" in a, false);
+});
+
+test("T-CHK-06 paid but email failed still reports paid and no key", async () => {
+  const env = await makeEnv();
+  env.__resendStatus = 500;
+  await fetchWorker(env, signedWebhook(checkoutEvent({ sessionId: "cs_mailfail2", email: "ada@example.com" })));
+  const res = await fetchWorker(env, new Request("https://api.diskprune.com/v1/checkout/cs_mailfail2/status"));
+  const body = await readJson(res);
+  assert.equal(res.status, 200);
+  assert.equal(body.payment_state, "paid");
+  assert.equal(body.delivery_state, "failed");
+  assert.equal(body.email_masked, "a•••@example.com");
+  assert.equal("license_key" in body, false);
 });
 
 test("invalid activate format is 400 before any lookup", async () => {

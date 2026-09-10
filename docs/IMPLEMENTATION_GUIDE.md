@@ -9,7 +9,8 @@
 - `app/Sources/DiskPrune` — native code, one SPM executable + tests
 - `worker/` — licensing backend (Phase 4). D1 + KV rate limits + Stripe-verified webhooks.
 - `app/Sources/DiskPrune/Licensing/` — native client (Phase 5). Verifies DPL tokens locally. Scan/autopsy do not consult it.
-- `site/` — current preview website (delete only after `web/` port, commit 7.7)
+- `web/` — static Astro site. Success page is status-only (`GET /v1/checkout/:id/status`).
+- `site/` — current preview website (delete only after `web/` port, commit 7.7). Success page no longer fabricates keys.
 
 ## Native pipeline
 
@@ -43,6 +44,14 @@ bash scripts/provision-worker.sh --apply   # create D1+KV, generate k1, put secr
 
 `GET /key-lookup` is gone. Checkout status never returns a key.
 
+## Website success page (Phase 7.5 / B-13)
+
+`web/src/pages/success.astro` reads `session_id` and calls `GET /v1/checkout/{id}/status`. It renders payment/delivery state and a masked email only. Poll paid+pending three times at 2 s, then the support line. The license key never reaches the browser.
+
+```bash
+node --test web/test/*.test.mjs
+```
+
 CI job 9 (`node scripts/check-licensing-config.mjs`) asserts the public keys match and that no PKCS#8 blob is in source.
 
 ## Native licensing (Phase 5)
@@ -67,6 +76,7 @@ bash scripts/sync-rules.sh
 bash scripts/ci-guardrails.sh
 node scripts/check-licensing-config.mjs
 bash scripts/provision-worker.sh --check
+node --test web/test/*.test.mjs
 cd worker && npm test
 cd app && swift test   # macOS
 ```

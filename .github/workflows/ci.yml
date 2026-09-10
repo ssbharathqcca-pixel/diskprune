@@ -158,3 +158,14 @@ jobs:
           node-version: "22"
       - name: PublicKeys.k1 == Worker LICENSE_SIGNING_PUB_K1
         run: node scripts/check-licensing-config.mjs
+
+  website-success:
+    name: 10 Website success-page tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: T-WEB-05 / B-13 status-only success page
+        run: node --test web/test/*.test.mjs

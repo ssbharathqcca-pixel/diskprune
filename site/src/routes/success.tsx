@@ -4,8 +4,16 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { PRODUCT } from "@/lib/product";
-import { getStoredLicense, issueLicense, saveLicense, verifyLicense } from "@/lib/license";
-import { usePruneStore } from "@/lib/prune-store";
+import {
+  copyFor,
+  interpretResponse,
+  parseSessionId,
+  POLL_LIMIT,
+  POLL_MS,
+  shouldPoll,
+  statusUrl,
+  type CheckoutView,
+} from "@/lib/checkout-status";
 
 export const Route = createFileRoute("/success")({
   component: SuccessPage,
@@ -19,65 +27,74 @@ export const Route = createFileRoute("/success")({
 
 function SuccessPage() {
   const { session_id: sessionId } = Route.useSearch();
-  const [key, setKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const activate = usePruneStore((s) => s.activate);
+  const [heading, setHeading] = useState("Checking your payment");
+  const [body, setBody] = useState("Checking payment status…");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const existing = getStoredLicense();
-    if (existing && verifyLicense(existing)) {
-      setKey(existing);
-      activate(existing);
+    const valid = parseSessionId(sessionId ? `session_id=${sessionId}` : "");
+    let cancelled = false;
+
+    const apply = (view: CheckoutView) => {
+      if (cancelled) return;
+      const copy = copyFor(view);
+      setHeading(copy.heading);
+      setBody(copy.body);
+      setLoading(false);
+    };
+
+    if (!valid) {
+      apply({ payment_state: "unknown", delivery_state: "unknown", email_masked: null });
       return;
     }
-    const issued = issueLicense();
-    saveLicense(issued);
-    activate(issued);
-    setKey(issued);
-  }, [activate]);
+
+    const load = async () => {
+      let view: CheckoutView = { payment_state: "unknown", delivery_state: "unknown", email_masked: null };
+      let polls = 0;
+      while (true) {
+        try {
+          const res = await fetch(statusUrl(valid), {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            credentials: "omit",
+          });
+          const payload = (await res.json()) as Record<string, unknown>;
+          view = interpretResponse(res.status, payload);
+        } catch {
+          view = { payment_state: "unknown", delivery_state: "unknown", email_masked: null };
+        }
+        if (!shouldPoll(view) || polls >= POLL_LIMIT) break;
+        polls += 1;
+        await new Promise((r) => setTimeout(r, POLL_MS));
+      }
+      if (shouldPoll(view)) view = { ...view, pollExhausted: true };
+      apply(view);
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   return (
     <div className="min-h-dvh">
       <SiteHeader />
       <main className="mx-auto max-w-lg px-4 py-20 text-center sm:px-6">
         <div className="rounded-2xl bg-card px-6 py-10 shadow-[var(--shadow-border)]">
-          <p className="text-xs font-medium uppercase tracking-widest text-ok">
-            {sessionId ? "Payment received" : "License issued"}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">You are licensed.</h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Paste this key when DiskPrune asks. On a real purchase the worker at
-            api.diskprune.com maps the Stripe session to the same PRUNE-XXXX format.
-          </p>
-          {key ? (
-            <div className="mt-8">
-              <p className="text-xs uppercase tracking-widest text-faint">Your license key</p>
-              <code className="mt-2 block select-all font-mono text-lg tracking-wide text-accent">
-                {key}
-              </code>
-              <Button
-                className="mt-4"
-                variant="secondary"
-                onClick={() => {
-                  void navigator.clipboard.writeText(key);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1600);
-                }}
-              >
-                {copied ? "Copied" : "Copy"}
-              </Button>
-            </div>
+          <h1 className="text-3xl font-semibold tracking-tight">{heading}</h1>
+          {loading ? (
+            <p className="mt-8 animate-pulse text-sm text-muted-foreground">{body}</p>
           ) : (
-            <p className="mt-8 animate-pulse text-sm text-muted-foreground">
-              Generating your license key…
-            </p>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{body}</p>
           )}
+          <p className="mt-6 text-xs text-faint">
+            DiskPrune never shows a license key on this page. If payment is confirmed, the key is in
+            your email. Paste it in DiskPrune → Settings → Licence.
+          </p>
           <div className="mt-8 flex flex-col gap-3">
             <Button asChild>
               <a href={PRODUCT.dmgUrl}>Download DiskPrune</a>
-            </Button>
-            <Button asChild variant="ghost">
-              <a href="/app">Open the app demo</a>
             </Button>
           </div>
         </div>
