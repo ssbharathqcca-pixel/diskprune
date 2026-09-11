@@ -1,53 +1,63 @@
 ---
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { DESCRIPTION, PRICE_NUMBER, SITE_ORIGIN, TAGLINE } from "../lib/product.mjs";
+import "../styles/global.css";
+
 interface Props {
   title: string;
+  description?: string;
+  image?: string;
 }
 
-const { title } = Astro.props;
+const {
+  title,
+  description = DESCRIPTION,
+  image = "/screenshots/overview.png",
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, SITE_ORIGIN).href;
+const ogImage = image.startsWith("http") ? image : new URL(image, SITE_ORIGIN).href;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="DiskPrune - The native macOS storage manager to reclaim disk space instantly." />
-    <meta name="viewport" content="width=device-width" />
-    
-    <!-- OpenGraph Tags -->
-    <meta property="og:title" content="DiskPrune" />
-    <meta property="og:description" content="DiskPrune is the ultimate native macOS storage manager to reclaim disk space instantly." />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
     <title>{title}</title>
-    
-    <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "DiskPrune",
-        "operatingSystem": "macOS 14.0+",
-        "applicationCategory": "UtilitiesApplication",
-        "offers": {
-          "@type": "Offer",
-          "price": "19.00",
-          "priceCurrency": "USD"
-        }
-      }
-    </script>
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "DiskPrune",
+      operatingSystem: "macOS 14.0+",
+      applicationCategory: "UtilitiesApplication",
+      description: TAGLINE,
+      offers: {
+        "@type": "Offer",
+        price: PRICE_NUMBER,
+        priceCurrency: "USD",
+      },
+    })} />
   </head>
-  <body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col">
+  <body class="min-h-screen flex flex-col bg-paper text-ink">
+    <Header />
     <slot />
-    <footer class="mt-auto border-t border-slate-800 py-8 px-6 text-sm text-slate-400">
-      <div class="max-w-4xl mx-auto flex flex-wrap gap-x-6 gap-y-2 justify-center">
-        <a href="/" class="hover:text-slate-200">Home</a>
-        <a href="/download" class="hover:text-slate-200">Download</a>
-        <a href="/pricing" class="hover:text-slate-200">Pricing</a>
-        <a href="/privacy" class="hover:text-slate-200">Privacy</a>
-        <a href="/refunds" class="hover:text-slate-200">Refunds</a>
-        <a href="/support" class="hover:text-slate-200">Support</a>
-        <a href="/license" class="hover:text-slate-200">License</a>
-      </div>
-    </footer>
+    <Footer />
   </body>
 </html>

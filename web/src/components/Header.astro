@@ -1,0 +1,25 @@
+---
+import { BUY_URL, PRICE } from "../lib/product.mjs";
+
+const path = Astro.url.pathname;
+function active(href) {
+  if (href === "/") return path === "/" || path === "";
+  return path === href || path.startsWith(href);
+}
+---
+
+<header class="sticky top-0 z-40 border-b border-hairline bg-paper/90 backdrop-blur-md">
+  <div class="mx-auto flex max-w-site flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
+    <a href="/" class="wordmark text-lg font-semibold tracking-tight text-ink">
+      DiskPrune
+    </a>
+    <nav class="flex flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+      <a class:list={["nav-link hover:text-ink", active("/download") && "text-ink"]} href="/download">Download</a>
+      <a class:list={["nav-link hover:text-ink", active("/pricing") && "text-ink"]} href="/pricing">Pricing</a>
+      <a class:list={["nav-link hover:text-ink", active("/mac-disk-space-analyzer") && "text-ink"]} href="/mac-disk-space-analyzer">Compare</a>
+      <a class="nav-link hover:text-ink" href="/#guides">Guides</a>
+      <a class:list={["nav-link hover:text-ink", active("/support") && "text-ink"]} href="/support">Support</a>
+    </nav>
+    <a class="btn btn-primary text-sm" href={BUY_URL}>Buy {PRICE}</a>
+  </div>
+</header>

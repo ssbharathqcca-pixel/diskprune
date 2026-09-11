@@ -1,0 +1,75 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { BUY_URL, PRICE } from "../lib/product.mjs";
+---
+
+<Layout
+  title="DiskPrune vs CleanMyMac — $19 lifetime, Trash only"
+  description="CleanMyMac is a subscription maintenance suite. DiskPrune is a $19 lifetime Mac storage instrument that only moves what you approve to Trash."
+>
+  <main class="prose-page mx-auto max-w-prose px-6 py-16">
+    <p class="text-sm text-muted"><a href="/">DiskPrune</a> · Compare</p>
+    <h1 class="mt-4 text-4xl font-semibold leading-tight tracking-tight">
+      DiskPrune vs CleanMyMac
+    </h1>
+    <p class="mt-4 text-lg text-muted leading-relaxed">
+      They are not the same category. CleanMyMac is a paid subscription suite:
+      malware scans, updaters, and a cleaner that markets large “cleaned”
+      numbers. DiskPrune is a native storage instrument. Scan is free. Cleanup
+      is a {PRICE} lifetime license. The only mutation is moving approved items
+      to Trash.
+    </p>
+
+    <h2 class="text-2xl font-semibold tracking-tight">Price</h2>
+    <p class="mt-4 text-muted leading-relaxed">
+      DiskPrune is {PRICE} once, up to three Macs you own or control, 14-day
+      refund. CleanMyMac is a subscription (and often a Mac App Store upsell).
+      If you want an antivirus-plus-updater-plus-cleaner bundle, that is their
+      product. If you want to understand why the volume is full and then trash
+      specific known locations, paying yearly for a suite is the wrong shape.
+    </p>
+
+    <h2 class="text-2xl font-semibold tracking-tight">What happens to files</h2>
+    <p class="mt-4 text-muted leading-relaxed">
+      DiskPrune cannot permanently delete. There is no removeItem fallback, no
+      empty-Trash call, no snapshot deletion. A dry-run sheet says “Nothing has
+      changed yet.” The receipt reports estimated recoverable, moved to Trash,
+      and storage immediately available as three different numbers — because
+      they are.
+    </p>
+    <p class="mt-4 text-muted leading-relaxed">
+      CleanMyMac’s marketing treats cleanup as a cleaned-gigabytes event.
+      That is a different trust model. We will not race them on a bigger number.
+    </p>
+
+    <h2 class="text-2xl font-semibold tracking-tight">System Data, Xcode, Docker</h2>
+    <p class="mt-4 text-muted leading-relaxed">
+      DiskPrune names Xcode DerivedData, protects Docker.raw, and lists APFS
+      snapshots without a delete control. Those three are the usual “System Data
+      is huge” story. A suite that offers to sweep them in one click is offering
+      to be wrong in a way you cannot undo.
+    </p>
+    <p class="mt-4 text-muted leading-relaxed">
+      Read <a href="/blog/clear-system-data-mac">System Data</a>,
+      <a href="/blog/how-to-delete-xcode-deriveddata">DerivedData</a>, and
+      <a href="/blog/shrink-docker-disk-mac">Docker.raw</a> if that is the actual
+      problem on your Mac.
+    </p>
+
+    <h2 class="text-2xl font-semibold tracking-tight">Notarization, today</h2>
+    <p class="mt-4 text-muted leading-relaxed">
+      CleanMyMac ships notarized. DiskPrune’s notarized DMG is not published
+      yet. Until it is, Gatekeeper needs Open Anyway. We would rather say that
+      on the site than pretend the current build is Developer ID signed.
+      <a href="/download">Download status</a> is the live sentence.
+    </p>
+
+    <div class="mt-12 border border-hairline bg-panel p-6" style="border-radius: var(--radius-md);">
+      <p class="font-semibold text-ink">Scan free. {PRICE} lifetime. Trash only.</p>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune — {PRICE}</a>
+        <a class="btn btn-secondary" href="/mac-disk-space-analyzer">Full comparison table</a>
+      </div>
+    </div>
+  </main>
+</Layout>
