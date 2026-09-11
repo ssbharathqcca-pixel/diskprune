@@ -147,19 +147,23 @@ export function checkoutEvent({
   email = "ada@example.com",
   customer = "cus_1",
   priceId = "price_diskprune_personal",
+  includeLineItems = true,
+  metadata = undefined,
 } = {}) {
+  const object = {
+    id: sessionId,
+    payment_status,
+    customer,
+    customer_details: { email },
+  };
+  if (includeLineItems) {
+    object.line_items = { data: [{ price: { id: priceId } }] };
+  }
+  if (metadata) object.metadata = metadata;
   return {
     id,
     type,
-    data: {
-      object: {
-        id: sessionId,
-        payment_status,
-        customer,
-        customer_details: { email },
-        line_items: { data: [{ price: { id: priceId } }] },
-      },
-    },
+    data: { object },
   };
 }
 

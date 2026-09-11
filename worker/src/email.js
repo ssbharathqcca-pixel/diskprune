@@ -2,7 +2,7 @@ import { decryptLicenseKey } from "./crypto.js";
 import { failedEmails, setEmailState, updateEncryptedKey } from "./db.js";
 
 function emailBodies(plaintext, env) {
-  const download = env.DOWNLOAD_URL || "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest";
+  const download = env.DOWNLOAD_URL || "https://diskprune.com/download";
   const support = env.SUPPORT_URL || "https://diskprune.com/support";
   const refunds = env.REFUND_URL || "https://diskprune.com/refunds";
   const text = [
@@ -52,6 +52,7 @@ export async function sendLicenseEmail(env, licenseRow) {
 export async function retryFailedEmails(env) {
   const rows = await failedEmails(env.DB);
   for (const row of rows) {
+    if (row.status !== "active") continue;
     const last = Number(row.email_last_attempt_at || 0);
     const delay = Math.min(6 * 3600 * (2 ** Math.max(0, Number(row.email_attempts || 1) - 1)), 7 * 24 * 3600);
     if (Date.now() / 1000 - last < delay) continue;

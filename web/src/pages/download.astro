@@ -1,0 +1,31 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Download DiskPrune">
+  <main class="max-w-3xl mx-auto px-6 py-20">
+    <h1 class="text-4xl font-bold mb-6">Download</h1>
+    <p class="text-lg text-slate-300 mb-4">
+      A notarized DiskPrune.dmg is not published yet. The file currently attached to GitHub
+      Releases v1.0.0 is an old stub — do not use it.
+    </p>
+    <p class="text-lg text-slate-300 mb-4">
+      If you already bought DiskPrune, your license key is in the email from
+      licenses@diskprune.com. Keep that email. Paste the key in DiskPrune → Settings → Licence
+      once you have the current app.
+    </p>
+    <p class="text-lg text-slate-300 mb-8">
+      We will post the signed macOS build here and in that same email thread as soon as it is
+      notarized. Until then, scan is free in the current app; moving items to Trash requires
+      the lifetime license.
+    </p>
+    <div class="flex flex-wrap gap-4">
+      <a href="https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg">
+        Buy lifetime — $19
+      </a>
+      <a href="/support" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-lg">
+        Support
+      </a>
+    </div>
+  </main>
+</Layout>

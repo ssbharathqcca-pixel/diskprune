@@ -36,7 +36,7 @@ crons = ["0 */6 * * *"]
 LICENSE_FROM_EMAIL = "DiskPrune <licenses@diskprune.com>"
 SUPPORT_URL = "https://diskprune.com/support"
 REFUND_URL = "https://diskprune.com/refunds"
-DOWNLOAD_URL = "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest"
+DOWNLOAD_URL = "https://diskprune.com/download"
 CORS_ORIGIN = "https://diskprune.com"
 # Public verify key. Must equal PublicKeys.k1Base64. Private key is a secret.
 LICENSE_SIGNING_PUB_K1 = "bwDWn1ibch4eF1MY64LX4pgFIxaGhrOM9dPtS5LtTEU="

@@ -9,8 +9,11 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+# Ad-hoc Visual QA DMGs must never become GitHub Releases.
+# /releases/latest currently must not be overwritten by package-macos.sh.
+# Notarized publishing lives on the Gate 5 pipeline (draft+prerelease only).
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -19,10 +22,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Package app and DMG
+    - name: Package app and DMG (ad-hoc QA only)
       run: bash scripts/package-macos.sh
       env:
-        DISKPRUNE_VERSION: "1.0.0"
+        DISKPRUNE_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '0.0.0-dev' }}
         DISKPRUNE_BUILD: ${{ github.sha }}
 
     - name: Upload DMG Artifact
@@ -31,13 +34,3 @@ jobs:
         name: DiskPrune-${{ github.sha }}
         path: app/DiskPrune.dmg
         if-no-files-found: error
-
-    - name: Publish GitHub Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v2
-      with:
-        files: app/DiskPrune.dmg
-        name: "DiskPrune ${{ github.ref_name }}"
-        generate_release_notes: true
-        draft: false
-        prerelease: false
