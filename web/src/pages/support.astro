@@ -1,27 +1,30 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Support — DiskPrune">
-  <main class="max-w-3xl mx-auto px-6 py-20">
-    <h1 class="text-4xl font-bold mb-6">Support</h1>
-    <p class="text-lg text-slate-300 mb-4">
-      Email <a href="mailto:support@diskprune.com" class="text-blue-400 hover:underline">support@diskprune.com</a>.
+<Layout
+  title="Support — DiskPrune"
+  description="Email support@diskprune.com. License keys arrive from licenses@diskprune.com, never on the success page."
+>
+  <main class="prose-page mx-auto max-w-prose px-6 py-16">
+    <h1 class="text-4xl font-semibold tracking-tight">Support</h1>
+    <p class="mt-4 text-lg text-muted leading-relaxed">
+      Email <a href="mailto:support@diskprune.com">support@diskprune.com</a>.
     </p>
-    <p class="text-lg text-slate-300 mb-4">
+    <p class="mt-4 text-muted leading-relaxed">
       Include the email you used at checkout if the question is about a missing license key.
       We never put the key on the success page or in a URL — check spam for
       licenses@diskprune.com.
     </p>
-    <p class="text-lg text-slate-300 mb-4">
+    <p class="mt-4 text-muted leading-relaxed">
       DiskPrune moves files to Trash only. It does not empty Trash, permanently delete, or
       delete APFS snapshots. If macOS shows an unidentified-developer warning, use System
       Settings → Privacy & Security → Open Anyway until a notarized build is posted.
     </p>
-    <p class="text-lg text-slate-300">
-      <a href="/refunds" class="text-blue-400 hover:underline">Refund policy</a>
+    <p class="mt-4 text-muted">
+      <a href="/refunds">Refund policy</a>
       ·
-      <a href="/privacy" class="text-blue-400 hover:underline">Privacy</a>
+      <a href="/privacy">Privacy</a>
     </p>
   </main>
 </Layout>

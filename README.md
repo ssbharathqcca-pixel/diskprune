@@ -64,9 +64,10 @@ signing is Phase 6.
 
 ## Website
 
-`site/` is a simulated demo. It does not scan this machine. It will be ported
-to `web/` (Astro) and then deleted. Do not treat the demo as more capable than
-the binary.
+`web/` is the Astro site for diskprune.com. Scan free, $19 lifetime, honest
+comparison and guides. `site/` is a simulated demo and is not the product.
+
+A notarized DMG is not published yet — see `/download`.
 
 ## License worker
 

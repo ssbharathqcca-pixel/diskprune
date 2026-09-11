@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Website (Lane 2 — honest marketing)
+
+- Homepage hero is “See why your Mac is full. Move only what you approve to Trash.” Scan free, $19 lifetime. Open Anyway sits below the fold until notarization.
+- Visual QA screenshots from `cc71a06d` (Overview, Cleanup, dry run, receipt, snapshots, scan) are the product images — not the `site/` demo.
+- Comparison table is DaisyDisk / DiskBuddy / DissectMac / CleanMyMac / DiskPrune and no longer calls DiskBuddy “Shortcuts Based” or a subscription, or DissectMac a subscription.
+- Guides rewritten to match the binary: System Data, DerivedData, Docker.raw (protected), purgeable/snapshots (inspect-only). Snapshot-flushing copy is gone.
+- New pages: `/mac-disk-space-analyzer`, `/vs-cleanmymac`.
+- Copy tests in `web/test/copy.test.mjs`. Gate 3 and Gate 5 remain NOT PASS.
+
 ### Website success page (Phase 7.5 / B-13)
 
 - `web/src/pages/success.astro` is status-only: `GET https://api.diskprune.com/v1/checkout/{session_id}/status`. It never fabricates, displays, or stores a license key. Copy follows the handoff table (paid+sent, paid+pending with 3×2s poll, unpaid, failed/unknown). `site/src/routes/success.tsx` no longer calls `issueLicense()`; that function is deleted.

@@ -1,0 +1,86 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { BUY_URL, PRICE, COMPARISON } from "../lib/product.mjs";
+---
+
+<Layout
+  title="Mac disk space analyzer compared — DiskPrune, DaisyDisk, DiskBuddy, DissectMac"
+  description="A Mac disk space analyzer should explain why the volume is full, then move only what you approve to Trash. How DiskPrune compares to DaisyDisk, DiskBuddy, DissectMac, and CleanMyMac."
+>
+  <main class="mx-auto max-w-site px-6 py-16">
+    <p class="text-sm text-muted"><a href="/">DiskPrune</a> · Compare</p>
+    <h1 class="mt-4 max-w-3xl text-4xl font-semibold leading-tight tracking-tight">
+      Mac disk space analyzers, compared without the launch candy
+    </h1>
+    <p class="mt-4 max-w-2xl text-lg text-muted leading-relaxed">
+      Most people searching this are not shopping for eight charts. They have a
+      80 GB System Data number, a Docker.raw they cannot explain, or DerivedData
+      from last year’s Xcode. Here is what each tool actually is.
+    </p>
+
+    <section class="mt-12 max-w-prose">
+      <h2 class="text-2xl font-semibold tracking-tight">The short version</h2>
+      <ul class="mt-4 list-disc space-y-2 pl-5 text-muted leading-relaxed">
+        <li><strong class="text-ink">DaisyDisk</strong> — best sunburst on Mac. ~$9.99, 5 Macs, notarized. Weak on why a byte exists. Collector cleanup.</li>
+        <li><strong class="text-ink">DiskBuddy</strong> — eight visualizations, lifetime license, launch pricing. Unsigned as of September 2026. Packaging is the product.</li>
+        <li><strong class="text-ink">DissectMac</strong> — free notarized treemap. No DiskPrune-style cleanup path.</li>
+        <li><strong class="text-ink">CleanMyMac</strong> — subscription suite. Aggressive cleanup marketing. See <a href="/vs-cleanmymac">DiskPrune vs CleanMyMac</a>.</li>
+        <li><strong class="text-ink">DiskPrune</strong> — storage autopsy, named developer locations, plan → dry run → Trash only. {PRICE} lifetime. Notarized build not published yet.</li>
+      </ul>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="text-2xl font-semibold tracking-tight">Table</h2>
+      <div class="mt-6 overflow-x-auto">
+        <table class="w-full min-w-[52rem] text-left text-sm">
+          <thead>
+            <tr class="border-b border-hairline">
+              <th class="sticky left-0 bg-paper py-3 pr-4 font-medium text-muted">Feature</th>
+              {COMPARISON.columns.map((col) => (
+                <th class:list={["py-3 px-3 font-semibold", col.id === "diskprune" ? "text-ink" : "text-muted"]}>
+                  {col.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARISON.rows.map((row) => (
+              <tr class="border-b border-hairline align-top">
+                <th class="sticky left-0 bg-paper py-3 pr-4 font-medium">{row.feature}</th>
+                {COMPARISON.columns.map((col) => (
+                  <td class:list={["py-3 px-3", col.id === "diskprune" ? "text-ink" : "text-muted"]}>
+                    {row[col.id]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="prose-page mt-12 max-w-prose">
+      <h2 class="text-2xl font-semibold tracking-tight">What “analyzer” should mean</h2>
+      <p class="mt-4 text-muted leading-relaxed">
+        A sunburst is a map of size. A treemap is a map of size. Eight charts are
+        eight maps of size. None of them tell you that Docker.raw is a sparse image
+        you must not trash, that a local snapshot is inspect-only, or that moving
+        a folder to Trash has not yet changed available capacity.
+      </p>
+      <p class="mt-4 text-muted leading-relaxed">
+        DiskPrune is built in the other direction: understand, then investigate,
+        then review, then move to Trash. The Visual QA screenshots on the
+        <a href="/">home page</a> are the native app, not a web demo.
+      </p>
+      <p class="mt-4 text-muted leading-relaxed">
+        If your only job is “show me the biggest folder as a daisy,” DaisyDisk
+        already won that category and we will not clone it for v1.
+      </p>
+    </section>
+
+    <div class="mt-12 flex flex-wrap gap-3">
+      <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune — {PRICE}</a>
+      <a class="btn btn-secondary" href="/download">Download status</a>
+    </div>
+  </main>
+</Layout>

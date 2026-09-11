@@ -1,78 +1,209 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
+import {
+  BUY_URL,
+  PRICE,
+  TAGLINE,
+  DESCRIPTION,
+  GUIDES,
+  COMPARE_PAGES,
+  COMPARISON,
+} from "../lib/product.mjs";
 ---
 
-<Layout title="DiskPrune - Reclaim Disk Space">
-  <main class="max-w-4xl mx-auto px-6 py-20">
-    <header class="text-center mb-16">
-      <h1 class="text-5xl font-bold tracking-tight mb-4">Reclaim Gigabytes on macOS.</h1>
-      <p class="text-xl text-slate-400">Native Swift. Zero Subscriptions. Just <strong>$19</strong> for life.</p>
-    </header>
-
-    <section class="flex flex-col items-center justify-center mb-20 gap-4">
-      <div class="flex gap-4">
-        <a href="/download" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
-          Download
-        </a>
-        <a href="https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg">
-          Buy DiskPrune Lifetime - $19
-        </a>
+<Layout title="DiskPrune — native macOS storage intelligence" description={DESCRIPTION}>
+  <main>
+    <section class="mx-auto max-w-site px-6 pt-16 pb-10 sm:pt-24">
+      <p class="text-sm font-medium uppercase tracking-[0.14em] text-muted">
+        Native SwiftUI · macOS 14+
+      </p>
+      <h1 class="mt-4 max-w-3xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+        See why your Mac is full. Move only what you approve to Trash.
+      </h1>
+      <p class="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
+        Scan is free. Cleanup is a {PRICE} lifetime license. DiskPrune never empties
+        Trash, never deletes APFS snapshots, and never touches Docker.raw.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a class="btn btn-primary" href={BUY_URL}>Buy lifetime — {PRICE}</a>
+        <a class="btn btn-secondary" href="/download">Download</a>
       </div>
+      <p class="mt-4 text-sm text-subtle">
+        Up to 3 Macs · 14-day refund · license key arrives by email, never in the browser.
+      </p>
+    </section>
 
-      <div class="mt-8 bg-slate-800 p-6 rounded-lg max-w-xl text-left border border-slate-700">
-        <h3 class="text-xl font-semibold mb-3 text-blue-400">Opening on macOS Sequoia & Sonoma</h3>
-        <ol class="list-decimal list-inside space-y-2 text-slate-300">
-          <li>Drag <code class="bg-slate-700 px-1 rounded">DiskPrune.app</code> to /Applications.</li>
-          <li>If prompted with an untrusted developer warning, open System Settings &gt; Privacy &amp; Security.</li>
-          <li>Scroll to Security and click <strong>Open Anyway</strong>.</li>
-        </ol>
+    <section class="mx-auto max-w-site px-6 pb-16">
+      <figure>
+        <img
+          class="shot"
+          src="/screenshots/overview.png"
+          width="1100"
+          height="720"
+          alt="DiskPrune Overview after a scan: Macintosh HD capacity bar, category sidebar, and Developer storage selected."
+        />
+        <figcaption class="mt-3 text-sm text-subtle">
+          Overview after a real scan. The capacity bar includes a not-examined region.
+          DiskPrune does not colour unknown bytes as if it understood them.
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="border-y border-hairline bg-panel">
+      <div class="mx-auto grid max-w-site gap-10 px-6 py-16 sm:grid-cols-3">
+        <div>
+          <p class="text-sm font-medium text-muted">1 · Understand</p>
+          <h2 class="mt-2 text-xl font-semibold tracking-tight">Storage autopsy</h2>
+          <p class="mt-2 text-muted leading-relaxed">
+            Categories, a capacity bar, and an honest not-examined hatch. The question
+            is “why is it full?”, not “how big is the number?”.
+          </p>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-muted">2 · Review</p>
+          <h2 class="mt-2 text-xl font-semibold tracking-tight">Plan, then dry run</h2>
+          <p class="mt-2 text-muted leading-relaxed">
+            You pick items. DiskPrune builds a plan, rejects ancestor/child overlap,
+            and shows a dry run. Nothing has changed yet.
+          </p>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-muted">3 · Trash only</p>
+          <h2 class="mt-2 text-xl font-semibold tracking-tight">Receipt, not a boast</h2>
+          <p class="mt-2 text-muted leading-relaxed">
+            Estimated recoverable. Moved to Trash. Storage immediately available.
+            Empty Trash yourself, in Finder, when you are ready.
+          </p>
+        </div>
       </div>
     </section>
 
-    <section class="mb-20">
-      <h2 class="text-3xl font-semibold mb-8 text-center">Why DiskPrune?</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-slate-700">
-              <th class="py-4 px-6">Feature</th>
-              <th class="py-4 px-6 text-blue-400">DiskPrune</th>
-              <th class="py-4 px-6 text-slate-500">DissectMac</th>
-              <th class="py-4 px-6 text-slate-500">Disk Buddy</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="border-b border-slate-800">
-              <td class="py-4 px-6">Tech Stack</td>
-              <td class="py-4 px-6">Native SwiftUI</td>
-              <td class="py-4 px-6">Treemap Only</td>
-              <td class="py-4 px-6">Shortcuts Based</td>
-            </tr>
-            <tr class="border-b border-slate-800">
-              <td class="py-4 px-6">Pricing</td>
-              <td class="py-4 px-6">$19 One-Time</td>
-              <td class="py-4 px-6">Subscription</td>
-              <td class="py-4 px-6">Subscription</td>
-            </tr>
-            <tr class="border-b border-slate-800">
-              <td class="py-4 px-6">APFS Snapshots</td>
-              <td class="py-4 px-6">Inspect only</td>
-              <td class="py-4 px-6">No</td>
-              <td class="py-4 px-6">No</td>
-            </tr>
-          </tbody>
-        </table>
+    <section class="mx-auto max-w-site px-6 py-16">
+      <h2 class="text-3xl font-semibold tracking-tight">The actual app</h2>
+      <p class="mt-3 max-w-2xl text-muted leading-relaxed">
+        Screenshots from the native Visual QA build on <code class="font-mono text-sm">main</code>.
+        This is DiskPrune, not a marketing mock.
+      </p>
+      <div class="mt-10 grid gap-10 lg:grid-cols-2">
+        <figure>
+          <img class="shot" src="/screenshots/scan.png" width="1100" height="720" alt="Scan progress with a determinate bar and named probes." />
+          <figcaption class="mt-3 text-sm text-subtle">Scan. Determinate progress, named probes. Cancel is available. No fake percentage.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="/screenshots/cleanup.png" width="1100" height="720" alt="Cleanup list with Safe, Review, Advanced, and Protected sections. Protected items have no checkbox." />
+          <figcaption class="mt-3 text-sm text-subtle">Cleanup. Protected items have no checkbox. Advanced is review-only until you know what it is.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="/screenshots/dry-run.png" width="720" height="520" alt="Dry-run sheet: Nothing has changed yet. Storage becomes available after you empty the Trash." />
+          <figcaption class="mt-3 text-sm text-subtle">Dry run. “Nothing has changed yet.” Storage becomes available after you empty the Trash.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="/screenshots/receipt.png" width="720" height="520" alt="Receipt with three lines: Estimated recoverable, Moved to Trash, Storage immediately available." />
+          <figcaption class="mt-3 text-sm text-subtle">Receipt. Three accounting lines. Files stay in Trash until you empty it.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="/screenshots/snapshots.png" width="1100" height="720" alt="Snapshots destination. Copy states DiskPrune never deletes snapshots. No delete control." />
+          <figcaption class="mt-3 text-sm text-subtle">Snapshots. Inspect only. There is no delete control.</figcaption>
+        </figure>
       </div>
     </section>
 
-    <section>
-      <h3 class="text-2xl mb-4">Guides</h3>
-      <ul class="list-disc list-inside space-y-2 text-blue-400">
-        <li><a href="/blog/clear-system-data-mac" class="hover:underline">Clear System Data on Mac</a></li>
-        <li><a href="/blog/how-to-delete-xcode-deriveddata" class="hover:underline">How to Delete Xcode DerivedData</a></li>
-        <li><a href="/blog/shrink-docker-disk-mac" class="hover:underline">Shrink Docker Disk Mac</a></li>
-        <li><a href="/blog/delete-purgeable-space-mac" class="hover:underline">Delete Purgeable Space Mac</a></li>
+    <section id="compare" class="border-y border-hairline bg-panel">
+      <div class="mx-auto max-w-site px-6 py-16">
+        <h2 class="text-3xl font-semibold tracking-tight">Honest comparison</h2>
+        <p class="mt-3 max-w-2xl text-muted leading-relaxed">
+          DaisyDisk owns sunburst. DiskBuddy owns eight charts. DissectMac is a free
+          treemap. CleanMyMac is a subscription suite. DiskPrune owns why the bytes
+          exist, and a cleanup path that can only move to Trash.
+        </p>
+        <div class="mt-8 overflow-x-auto">
+          <table class="w-full min-w-[52rem] text-left text-sm">
+            <thead>
+              <tr class="border-b border-hairline">
+                <th class="sticky left-0 bg-panel py-3 pr-4 font-medium text-muted">Feature</th>
+                {COMPARISON.columns.map((col) => (
+                  <th class:list={["py-3 px-3 font-semibold", col.id === "diskprune" ? "text-ink" : "text-muted"]}>
+                    {col.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.rows.map((row) => (
+                <tr class="border-b border-hairline align-top">
+                  <th class="sticky left-0 bg-panel py-3 pr-4 font-medium text-ink">{row.feature}</th>
+                  {COMPARISON.columns.map((col) => (
+                    <td class:list={["py-3 px-3", col.id === "diskprune" ? "text-ink" : "text-muted"]}>
+                      {row[col.id]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-sm text-subtle">
+          If you only want a sunburst, buy DaisyDisk. If you want eight novelty charts,
+          DiskBuddy has them. If you want to understand System Data, DerivedData, and
+          Docker.raw — and move only what you approve to Trash — that is DiskPrune.
+        </p>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-site px-6 py-16">
+      <h2 class="text-3xl font-semibold tracking-tight">What DiskPrune will not do</h2>
+      <ul class="mt-6 grid gap-3 text-muted sm:grid-cols-2">
+        <li class="border border-hairline bg-panel px-5 py-4" style="border-radius: var(--radius-md);">Permanently delete files. There is no <code class="font-mono text-sm">removeItem</code> fallback.</li>
+        <li class="border border-hairline bg-panel px-5 py-4" style="border-radius: var(--radius-md);">Empty Trash. That is your action, in Finder.</li>
+        <li class="border border-hairline bg-panel px-5 py-4" style="border-radius: var(--radius-md);">Delete APFS local snapshots. The Snapshots screen is inspect-only.</li>
+        <li class="border border-hairline bg-panel px-5 py-4" style="border-radius: var(--radius-md);">Delete <code class="font-mono text-sm">Docker.raw</code> or Docker data directories.</li>
+        <li class="border border-hairline bg-panel px-5 py-4" style="border-radius: var(--radius-md);">Claim that moving files to Trash has already made that space available.</li>
+        <li class="border border-hairline bg-panel px-5 py-4" style="border-radius: var(--radius-md);">Scan your files off the Mac. The disk map stays on the device.</li>
       </ul>
+    </section>
+
+    <section id="guides" class="border-y border-hairline bg-panel">
+      <div class="mx-auto max-w-site px-6 py-16">
+        <h2 class="text-3xl font-semibold tracking-tight">Guides</h2>
+        <p class="mt-3 max-w-2xl text-muted">The three sentences people actually search. Written to match the binary, not to overclaim.</p>
+        <div class="mt-8 grid gap-4 sm:grid-cols-2">
+          {[...GUIDES, ...COMPARE_PAGES].map((g) => (
+            <a href={g.href} class="block border border-hairline bg-paper p-5 no-underline hover:border-ink/20" style="border-radius: var(--radius-md);">
+              <p class="font-semibold text-ink">{g.title}</p>
+              <p class="mt-1 text-sm text-muted">{g.blurb}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="opening-on-macos" class="mx-auto max-w-site px-6 py-16">
+      <h2 class="text-2xl font-semibold tracking-tight">Opening on macOS Sequoia and Sonoma</h2>
+      <p class="mt-3 max-w-2xl text-muted leading-relaxed">
+        A notarized DiskPrune.dmg is not published yet. Until Apple Developer ID
+        signing lands, Gatekeeper will warn. That is an unsigned build, not malware.
+        DaisyDisk is notarized today. We will be too.
+      </p>
+      <ol class="mt-6 max-w-xl list-decimal space-y-2 pl-5 text-muted">
+        <li>Drag <code class="font-mono text-sm">DiskPrune.app</code> to <code class="font-mono text-sm">/Applications</code>.</li>
+        <li>If macOS blocks it, open System Settings → Privacy & Security.</li>
+        <li>Scroll to Security and click <strong class="text-ink">Open Anyway</strong>.</li>
+      </ol>
+      <p class="mt-4 text-sm text-subtle">
+        This block comes down when the notarized build is on
+        <a href="/download">/download</a>.
+      </p>
+    </section>
+
+    <section class="border-t border-hairline bg-panel">
+      <div class="mx-auto max-w-site px-6 py-16 text-center">
+        <p class="text-2xl font-semibold tracking-tight">{TAGLINE}</p>
+        <p class="mt-3 text-muted">Scan free. {PRICE} lifetime. 3 Macs. 14-day refund.</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune Lifetime — {PRICE}</a>
+          <a class="btn btn-secondary" href="/download">Download status</a>
+        </div>
+      </div>
     </section>
   </main>
 </Layout>
