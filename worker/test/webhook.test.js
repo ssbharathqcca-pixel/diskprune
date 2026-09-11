@@ -242,3 +242,50 @@ test("T-EMAIL-05 retry does not email a revoked license", async () => {
   await retryFailedEmails(env);
   assert.equal(env.__emails.length, 0);
 });
+
+test("T-WH-METADATA uses session.metadata.stripe_price_id when line_items absent", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  env.__sqlite.prepare("UPDATE products SET stripe_price_id = 'price_from_meta'").run();
+  env.__sqlite.prepare(
+    "INSERT INTO products (stripe_price_id, license_type, entitlements_json, max_devices, created_at) VALUES ('price_other', 'personal', '[\"cleanup\"]', 3, 0)",
+  ).run();
+  const res = await fetchWorker(
+    env,
+    signedWebhook(
+      checkoutEvent({
+        sessionId: "cs_meta",
+        includeLineItems: false,
+        metadata: { stripe_price_id: "price_from_meta" },
+      }),
+    ),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 1);
+});
+
+test("T-WH-UNKNOWN-PRODUCT returns 500 and writes no license when SKU cannot be resolved", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  env.__sqlite.prepare("DELETE FROM products").run();
+  env.__sqlite.prepare(
+    "INSERT INTO products (stripe_price_id, license_type, entitlements_json, max_devices, created_at) VALUES ('price_a', 'personal', '[\"cleanup\"]', 3, 0)",
+  ).run();
+  env.__sqlite.prepare(
+    "INSERT INTO products (stripe_price_id, license_type, entitlements_json, max_devices, created_at) VALUES ('price_b', 'personal', '[\"cleanup\"]', 3, 0)",
+  ).run();
+  const res = await fetchWorker(
+    env,
+    signedWebhook(
+      checkoutEvent({
+        sessionId: "cs_unk",
+        includeLineItems: false,
+        metadata: { stripe_price_id: "price_missing" },
+      }),
+    ),
+  );
+  assert.equal(res.status, 500);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 0);
+  const body = await res.json();
+  assert.equal(body.error, "fulfillment_failed");
+});
