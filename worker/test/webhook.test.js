@@ -207,3 +207,85 @@ test("GET /key-lookup is gone", async () => {
   const res = await fetchWorker(env, new Request("https://api.diskprune.com/key-lookup?session_id=cs_test_1"));
   assert.equal(res.status, 404);
 });
+
+test("T-WH-LINEITEMS live Payment Link payload (no line_items, no STRIPE_PRICE_ID) still fulfils seed SKU", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  const res = await fetchWorker(
+    env,
+    signedWebhook(checkoutEvent({ sessionId: "cs_plink", includeLineItems: false })),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 1);
+});
+
+test("T-WH-SOLE-SKU survives products.stripe_price_id UPDATE when payload has no line_items", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  env.__sqlite.prepare("UPDATE products SET stripe_price_id = 'price_live_real'").run();
+  const res = await fetchWorker(
+    env,
+    signedWebhook(checkoutEvent({ sessionId: "cs_updated", includeLineItems: false })),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 1);
+});
+
+test("T-EMAIL-05 retry does not email a revoked license", async () => {
+  const { retryFailedEmails } = await import("../src/email.js");
+  const env = await makeEnv();
+  env.__resendStatus = 500;
+  await fetchWorker(env, signedWebhook(checkoutEvent({ sessionId: "cs_revmail" })));
+  env.__sqlite.prepare("UPDATE licenses SET status = 'revoked', email_state = 'failed', email_attempts = 1, email_last_attempt_at = 0").run();
+  env.__emails.length = 0;
+  env.__resendStatus = 200;
+  await retryFailedEmails(env);
+  assert.equal(env.__emails.length, 0);
+});
+
+test("T-WH-METADATA uses session.metadata.stripe_price_id when line_items absent", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  env.__sqlite.prepare("UPDATE products SET stripe_price_id = 'price_from_meta'").run();
+  env.__sqlite.prepare(
+    "INSERT INTO products (stripe_price_id, license_type, entitlements_json, max_devices, created_at) VALUES ('price_other', 'personal', '[\"cleanup\"]', 3, 0)",
+  ).run();
+  const res = await fetchWorker(
+    env,
+    signedWebhook(
+      checkoutEvent({
+        sessionId: "cs_meta",
+        includeLineItems: false,
+        metadata: { stripe_price_id: "price_from_meta" },
+      }),
+    ),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 1);
+});
+
+test("T-WH-UNKNOWN-PRODUCT returns 500 and writes no license when SKU cannot be resolved", async () => {
+  const env = await makeEnv();
+  delete env.STRIPE_PRICE_ID;
+  env.__sqlite.prepare("DELETE FROM products").run();
+  env.__sqlite.prepare(
+    "INSERT INTO products (stripe_price_id, license_type, entitlements_json, max_devices, created_at) VALUES ('price_a', 'personal', '[\"cleanup\"]', 3, 0)",
+  ).run();
+  env.__sqlite.prepare(
+    "INSERT INTO products (stripe_price_id, license_type, entitlements_json, max_devices, created_at) VALUES ('price_b', 'personal', '[\"cleanup\"]', 3, 0)",
+  ).run();
+  const res = await fetchWorker(
+    env,
+    signedWebhook(
+      checkoutEvent({
+        sessionId: "cs_unk",
+        includeLineItems: false,
+        metadata: { stripe_price_id: "price_missing" },
+      }),
+    ),
+  );
+  assert.equal(res.status, 500);
+  assert.equal(env.__sqlite.prepare("SELECT COUNT(*) AS n FROM licenses").get().n, 0);
+  const body = await res.json();
+  assert.equal(body.error, "fulfillment_failed");
+});

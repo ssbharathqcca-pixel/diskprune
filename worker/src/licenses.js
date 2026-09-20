@@ -25,10 +25,11 @@ function json(data, status = 200, extraHeaders = {}) {
 function parseEntitlements(row) {
   try {
     const v = JSON.parse(row.entitlements_json);
-    return Array.isArray(v) ? v : ["cleanup"];
+    if (Array.isArray(v) && v.every((x) => typeof x === "string")) return v;
   } catch {
-    return ["cleanup"];
+    // fall through
   }
+  return [];
 }
 
 export async function handleActivate(request, env) {

@@ -9,6 +9,7 @@ import {
   getLicenseByCustomer,
   getLicenseBySession,
   getProduct,
+  getSoleProduct,
   insertLicense,
   insertPendingFulfillment,
   isUniqueError,
@@ -25,13 +26,26 @@ function json(data, status = 200) {
   });
 }
 
-function priceIdFromSession(session, env) {
-  return (
-    session?.line_items?.data?.[0]?.price?.id ||
-    session?.metadata?.stripe_price_id ||
-    env.STRIPE_PRICE_ID ||
-    "price_diskprune_personal"
-  );
+const SEED_PRICE_ID = "price_diskprune_personal";
+
+function candidatePriceIds(session, env) {
+  const ids = [
+    session?.line_items?.data?.[0]?.price?.id,
+    session?.metadata?.stripe_price_id,
+    env.STRIPE_PRICE_ID,
+    SEED_PRICE_ID,
+  ].filter((id) => typeof id === "string" && id.length > 0);
+  return [...new Set(ids)];
+}
+
+async function resolveProduct(env, session) {
+  for (const id of candidatePriceIds(session, env)) {
+    const product = await getProduct(env.DB, id);
+    if (product) return product;
+  }
+  const sole = await getSoleProduct(env.DB);
+  if (sole) return sole;
+  throw Object.assign(new Error("unknown product"), { status: 500 });
 }
 
 async function constructEvent(request, env) {
@@ -80,7 +94,7 @@ async function fulfilSession(env, session) {
     return json({ received: true });
   }
 
-  const product = await getProduct(env.DB, priceIdFromSession(session, env));
+  const product = await resolveProduct(env, session);
   if (!product) throw Object.assign(new Error("unknown product"), { status: 500 });
 
   const licenseId = crypto.randomUUID();

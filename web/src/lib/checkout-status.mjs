@@ -2,8 +2,7 @@
 
 export const API_ORIGIN = "https://api.diskprune.com";
 export const SUPPORT_EMAIL = "support@diskprune.com";
-export const DOWNLOAD_URL =
-  "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest/download/DiskPrune.dmg";
+export const DOWNLOAD_URL = "https://diskprune.com/download";
 export const POLL_LIMIT = 3;
 export const POLL_MS = 2000;
 export const SESSION_RE = /^cs_[A-Za-z0-9_]{6,250}$/;

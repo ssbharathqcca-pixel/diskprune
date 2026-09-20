@@ -1,0 +1,41 @@
+---
+import { GUIDES, COMPARE_PAGES, SUPPORT_EMAIL } from "../lib/product.mjs";
+---
+
+<footer class="mt-auto border-t border-hairline py-12 px-6 text-sm text-muted">
+  <div class="mx-auto grid max-w-site gap-10 sm:grid-cols-3">
+    <div>
+      <p class="font-semibold text-ink">DiskPrune</p>
+      <p class="mt-2 max-w-xs leading-relaxed">
+        Native macOS storage intelligence. Scan free. Cleanup is a $19 lifetime
+        license. Trash only.
+      </p>
+    </div>
+    <div>
+      <p class="font-semibold text-ink">Guides</p>
+      <ul class="mt-2 space-y-1">
+        {GUIDES.map((g) => (
+          <li><a href={g.href}>{g.title}</a></li>
+        ))}
+        {COMPARE_PAGES.map((g) => (
+          <li><a href={g.href}>{g.title}</a></li>
+        ))}
+      </ul>
+    </div>
+    <div>
+      <p class="font-semibold text-ink">Legal</p>
+      <ul class="mt-2 space-y-1">
+        <li><a href="/download">Download</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/refunds">Refunds</a></li>
+        <li><a href="/license">License</a></li>
+        <li><a href="/support">Support</a></li>
+        <li><a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a></li>
+      </ul>
+    </div>
+  </div>
+  <p class="mx-auto mt-10 max-w-site text-subtle">
+    DiskPrune does not empty Trash, delete APFS snapshots, or delete Docker disk images.
+  </p>
+</footer>

@@ -1,0 +1,32 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+  title="Privacy — DiskPrune"
+  description="DiskPrune scans stay on your Mac. We store what Stripe and licensing require: email, hashed key, seats. We do not upload your file list."
+>
+  <main class="prose-page mx-auto max-w-prose px-6 py-16">
+    <h1 class="text-4xl font-semibold tracking-tight">Privacy</h1>
+    <p class="mt-4 text-muted">Last updated 11 September 2026.</p>
+    <p class="mt-4 text-muted leading-relaxed">
+      DiskPrune is a native macOS app. Scans and cleanup plans stay on your Mac. We do not
+      upload your file list, paths, or disk map.
+    </p>
+    <p class="mt-4 text-muted leading-relaxed">
+      When you buy a license we receive, via Stripe, your email address and payment status.
+      We store a hashed license key, an encrypted copy of that key, your email, device seat
+      identifiers you activate, and Stripe session/customer ids. That is what we need to
+      email the key, enforce the 3-Mac seat limit, and handle refunds.
+    </p>
+    <p class="mt-4 text-muted leading-relaxed">
+      We use Stripe for payment, Resend to deliver the license email, and Cloudflare to host
+      the licensing API. We do not sell your email. We do not put license keys in URLs or
+      in the browser after checkout.
+    </p>
+    <p class="mt-4 text-muted leading-relaxed">
+      To delete your license record, email support@diskprune.com. Refunds are described on
+      the <a href="/refunds">refunds</a> page.
+    </p>
+  </main>
+</Layout>

@@ -16,7 +16,15 @@ export async function recordEvent(db, stripeEventId, type) {
 }
 
 export async function getProduct(db, priceId) {
+  if (!priceId) return null;
   return db.prepare("SELECT * FROM products WHERE stripe_price_id = ?").bind(priceId).first();
+}
+
+/** Launch-safe: a live Payment Link payload has no line_items. If D1 has exactly one SKU, use it. */
+export async function getSoleProduct(db) {
+  const res = await db.prepare("SELECT * FROM products LIMIT 2").all();
+  const rows = res?.results ?? [];
+  return rows.length === 1 ? rows[0] : null;
 }
 
 export async function getLicenseByHash(db, keyHash) {
@@ -175,7 +183,7 @@ export async function licensesByEmail(db, email) {
 
 export async function failedEmails(db) {
   const res = await db.prepare(
-    "SELECT * FROM licenses WHERE email_state = 'failed' AND email_attempts < 5",
+    "SELECT * FROM licenses WHERE email_state = 'failed' AND email_attempts < 5 AND status = 'active'",
   ).all();
   return res.results ?? [];
 }
