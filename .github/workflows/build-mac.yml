@@ -97,6 +97,23 @@ jobs:
       - name: Fail closed if Apple secrets are absent
         run: bash scripts/release-macos.sh --prereqs
 
+      # release-macos.sh requires HEAD to sit on a vX.Y.Z tag. On the dispatch
+      # path the tag does not exist yet -- softprops creates it on the remote
+      # when the draft release is published. Create it locally so the guard is
+      # satisfied by a real tag at this exact commit rather than bypassed.
+      - name: Materialise the release tag at HEAD (dispatch path only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          v='${{ inputs.version }}'
+          case "$v" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "refusing: version '$v' is not vX.Y.Z" >&2; exit 1 ;;
+          esac
+          git -c user.name=github-actions -c user.email=github-actions@github.com \
+              tag -a "$v" -m "DiskPrune $v"
+          git describe --tags --exact-match
+
       - name: Universal, sign, notarize, staple, verify 1–9
         run: bash scripts/release-macos.sh
         env:
