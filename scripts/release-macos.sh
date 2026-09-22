@@ -212,14 +212,41 @@ path.write_text(text if text.endswith("\n") else text + "\n")
 os.chmod(path, 0o600)
 PY
 
+# Submit to Apple Notary then wait for acceptance. Separating submit from wait
+# means a transient network drop during polling cannot lose the submission id —
+# we can retry wait with the same id and Apple resumes from the queue position.
+# Args: <artifact> <log-base>  (writes <log-base>.submit.txt + <log-base>.txt)
+# Prints submission id to stdout; all progress/diagnostic output goes to stderr.
+notary_submit_and_wait() {
+  local file="$1" base="$2"
+  xcrun notarytool submit "$file" \
+    --key "$ASC_KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
+    | tee "${base}.submit.txt" >&2
+  local id
+  id="$(awk '/^\s*id:/{print $2; exit}' "${base}.submit.txt" | tr -d '\r')"
+  [[ -n "$id" ]] || { echo "notarytool: no submission id in output" >&2; exit 1; }
+  echo "notarytool submission id: $id" >&2
+  local attempt
+  for attempt in 1 2 3; do
+    if xcrun notarytool wait "$id" \
+         --key "$ASC_KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
+         | tee -a "${base}.txt" >&2; then
+      break
+    fi
+    [[ $attempt -lt 3 ]] || { echo "notarytool wait failed after 3 attempts" >&2; exit 1; }
+    echo "notarytool wait failed (attempt $attempt/3); retrying in 30s…" >&2
+    sleep 30
+  done
+  grep -q "status: Accepted" "${base}.txt" || {
+    echo "notarization not Accepted — see ${base}.txt" >&2; exit 1
+  }
+  echo "$id"
+}
+
 echo "notarize app zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
-xcrun notarytool submit "$ZIP" \
-  --key "$ASC_KEY_PATH" \
-  --key-id "$ASC_KEY_ID" \
-  --issuer "$ASC_ISSUER_ID" \
-  --wait | tee "$OUT_DIR/notarytool-app.txt"
+notary_submit_and_wait "$ZIP" "$OUT_DIR/notarytool-app" > /dev/null
 xcrun stapler staple "$APP"
 
 echo "create and sign DMG"
@@ -228,16 +255,9 @@ hdiutil create -volname "DiskPrune" -srcfolder "$APP" -ov -format UDZO "$DMG"
 codesign --force --timestamp --sign "$IDENTITY" "$DMG"
 
 echo "notarize DMG"
-xcrun notarytool submit "$DMG" \
-  --key "$ASC_KEY_PATH" \
-  --key-id "$ASC_KEY_ID" \
-  --issuer "$ASC_ISSUER_ID" \
-  --wait | tee "$OUT_DIR/notarytool-dmg.txt"
+SUBMISSION_ID="$(notary_submit_and_wait "$DMG" "$OUT_DIR/notarytool-dmg")"
 
-# Fetch JSON log for check 5. Submission id is in the wait output.
-SUBMISSION_ID="$(
-  awk '/id: /{id=$2} END{print id}' "$OUT_DIR/notarytool-dmg.txt" | tr -d '\r'
-)"
+# Fetch JSON log for check 5.
 if [[ -n "$SUBMISSION_ID" ]]; then
   xcrun notarytool log "$SUBMISSION_ID" \
     --key "$ASC_KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
