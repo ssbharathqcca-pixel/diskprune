@@ -199,7 +199,7 @@ python3 - "$ASC_KEY_PATH" <<'PY'
 import os, pathlib, sys
 text = os.environ["ASC_KEY_P8"]
 path = pathlib.Path(sys.argv[1])
-if "BEGIN PRIVATE KEY" not in text:
+if "PRIVATE KEY" not in text:
     raise SystemExit("ASC_KEY_P8 is not a PEM private key")
 path.write_text(text if text.endswith("\n") else text + "\n")
 os.chmod(path, 0o600)
