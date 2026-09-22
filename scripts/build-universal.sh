@@ -110,7 +110,9 @@ echo "universal: building arm64"
 swift build -c release --arch arm64 --product DiskPrune
 cp "$(find_product arm64)" "$STAGING/DiskPrune.arm64"
 rm -rf "$STAGING/bundle.arm64"
-cp -R "$(find_bundle arm64)" "$STAGING/bundle.arm64"
+ARM_BUNDLE_SRC="$(find_bundle arm64)"
+ARM_BUNDLE_NAME="$(basename "$ARM_BUNDLE_SRC")"
+cp -R "$ARM_BUNDLE_SRC" "$STAGING/bundle.arm64"
 ARM_BUNDLE_HASH="$(hash_tree "$STAGING/bundle.arm64")"
 
 echo "universal: building x86_64"
@@ -140,7 +142,7 @@ fi
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$STAGING/DiskPrune.universal" "$APP/Contents/MacOS/DiskPrune"
 chmod +x "$APP/Contents/MacOS/DiskPrune"
-cp -R "$STAGING/bundle.arm64" "$APP/Contents/Resources/$(basename "$STAGING/bundle.arm64")"
+cp -R "$STAGING/bundle.arm64" "$APP/Contents/Resources/$ARM_BUNDLE_NAME"
 
 if [[ -f "$APP_DIR/Sources/DiskPrune/Knowledge/Resources/storage-rules.json" ]]; then
   cp "$APP_DIR/Sources/DiskPrune/Knowledge/Resources/storage-rules.json" \
