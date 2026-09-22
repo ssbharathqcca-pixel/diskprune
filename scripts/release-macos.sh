@@ -166,7 +166,11 @@ if [[ "$IDENTITY" == "-" || -z "$IDENTITY" ]]; then
   exit 1
 fi
 
-# Nested code first, then the bundle. --deep is prohibited for signing.
+# Verify the SPM resource bundle is present. It contains only data files
+# (JSON, plists) — no Mach-O — so codesigning it as a plugin bundle would
+# fail with "bundle format unrecognized". The app-level signature covers its
+# contents. --deep is prohibited for notarization; we sign code-bearing
+# components individually (executable, then app).
 BUNDLE=""
 shopt -s nullglob
 for b in "$APP/Contents/Resources"/*.bundle; do
@@ -177,12 +181,7 @@ if [[ -z "$BUNDLE" ]]; then
   echo "missing SPM resource bundle inside $APP" >&2
   exit 1
 fi
-
-echo "codesign nested bundle (hardened runtime, timestamp)"
-codesign --force --options runtime --timestamp \
-  --entitlements "$ENTITLEMENTS" \
-  --sign "$IDENTITY" \
-  "$BUNDLE"
+echo "SPM resource bundle present: $(basename "$BUNDLE") (data-only, not signed separately)"
 
 echo "codesign executable"
 codesign --force --options runtime --timestamp \
