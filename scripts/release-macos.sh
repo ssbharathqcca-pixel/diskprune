@@ -223,7 +223,7 @@ notary_submit_and_wait() {
     --key "$ASC_KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
     | tee "${base}.submit.txt" >&2
   local id
-  id="$(awk '/^\s*id:/{print $2; exit}' "${base}.submit.txt" | tr -d '\r')"
+  id="$(awk '/^[[:space:]]*id:/{print $NF; exit}' "${base}.submit.txt" | tr -d '\r')"
   [[ -n "$id" ]] || { echo "notarytool: no submission id in output" >&2; exit 1; }
   echo "notarytool submission id: $id" >&2
   local attempt
