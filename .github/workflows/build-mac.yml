@@ -8,6 +8,11 @@ on:
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to build, sign and notarize (e.g. v1.2.0). Leave blank for a non-release build."
+        required: false
+        default: ""
 
 # Tag GitHub Releases are created only by the notarized job, as drafts.
 # Ad-hoc Visual QA DMGs are never published as GitHub Releases.
@@ -75,7 +80,7 @@ jobs:
     name: Developer ID + notarize + staple
     runs-on: macos-14
     timeout-minutes: 90
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.version != '')
     permissions:
       contents: write
     env:
@@ -95,13 +100,13 @@ jobs:
       - name: Universal, sign, notarize, staple, verify 1–9
         run: bash scripts/release-macos.sh
         env:
-          DISKPRUNE_VERSION: ${{ github.ref_name }}
-          DISKPRUNE_BUILD: ${{ github.ref_name }}.${{ github.run_number }}
+          DISKPRUNE_VERSION: ${{ inputs.version != '' && inputs.version || github.ref_name }}
+          DISKPRUNE_BUILD: ${{ inputs.version != '' && inputs.version || github.ref_name }}.${{ github.run_number }}
 
       - name: Upload notarized DMG + checksum + report
         uses: actions/upload-artifact@v4
         with:
-          name: DiskPrune-notarized-${{ github.ref_name }}
+          name: DiskPrune-notarized-${{ inputs.version != '' && inputs.version || github.ref_name }}
           path: |
             dist/release/DiskPrune.dmg
             dist/release/DiskPrune.dmg.sha256
@@ -116,7 +121,9 @@ jobs:
           files: |
             dist/release/DiskPrune.dmg
             dist/release/DiskPrune.dmg.sha256
-          name: "DiskPrune ${{ github.ref_name }}"
+          tag_name: ${{ inputs.version != '' && inputs.version || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: "DiskPrune ${{ inputs.version != '' && inputs.version || github.ref_name }}"
           generate_release_notes: true
           draft: true
           prerelease: true
