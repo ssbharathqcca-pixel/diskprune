@@ -164,6 +164,37 @@ if grep -RIn 'function issueLicense\|export function issueLicense' "$ROOT/site" 
   fail "B-13: issueLicense() is prohibited"
 fi
 
+# Gate 5 — release pipeline must not fall back to ad-hoc signing
+if [[ -f "$ROOT/scripts/release-macos.sh" ]]; then
+  if grep -nE 'codesign[[:space:]].*--sign[[:space:]]+-($|[[:space:]])' "$ROOT/scripts/release-macos.sh" >/dev/null 2>&1; then
+    grep -nE 'codesign[[:space:]].*--sign[[:space:]]+-' "$ROOT/scripts/release-macos.sh" >&2 || true
+    fail "scripts/release-macos.sh must never ad-hoc sign"
+  fi
+  if ! grep -q 'options runtime' "$ROOT/scripts/release-macos.sh"; then
+    fail "scripts/release-macos.sh must pass codesign --options runtime"
+  fi
+  if grep -nE 'codesign[[:space:]].*--deep' "$ROOT/scripts/release-macos.sh" >/dev/null 2>&1; then
+    fail "signing with --deep is prohibited (PART 19.3); --deep is allowed only on verify"
+  fi
+fi
+if [[ -f "$ROOT/.github/workflows/build-mac.yml" ]]; then
+  if grep -n 'draft: false' "$ROOT/.github/workflows/build-mac.yml" >/dev/null 2>&1; then
+    grep -n 'draft: false' "$ROOT/.github/workflows/build-mac.yml" >&2 || true
+    fail "tag GitHub Releases must stay draft until Gate 5 checks 10–12"
+  fi
+  if grep -A20 'Publish GitHub Release' "$ROOT/.github/workflows/build-mac.yml" | grep -q 'package-macos.sh'; then
+    fail "ad-hoc package-macos.sh DMG must not be published as a GitHub Release"
+  fi
+fi
+if [[ -f "$ROOT/app/Packaging/DiskPrune.entitlements" ]]; then
+  if grep -n 'get-task-allow' "$ROOT/app/Packaging/DiskPrune.entitlements" >/dev/null 2>&1; then
+    fail "release entitlements must not contain get-task-allow"
+  fi
+  if grep -n 'disable-library-validation' "$ROOT/app/Packaging/DiskPrune.entitlements" >/dev/null 2>&1; then
+    fail "release entitlements must not disable library validation"
+  fi
+fi
+
 if [[ "$FAIL" -ne 0 ]]; then
   note "Guardrails failed."
   exit 1

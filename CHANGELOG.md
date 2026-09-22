@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Gate 5 / release engineering (handoff 6.1 / 6.2)
+
+- Universal build: `scripts/build-universal.sh` (`swift build --arch arm64` + `--arch x86_64`, `lipo`, byte-identical SPM bundles). T-REL-01 is `lipo -archs` on the assembled executable.
+- Release path: `scripts/release-macos.sh` — Developer ID Application, `--options runtime --timestamp`, nested sign (no `--deep`), `notarytool` of the app zip and the DMG, `stapler` on both, SHA-256, `scripts/verify-release.sh` (PART 19.4 checks 1–9). Missing Apple secrets fail the job. There is no ad-hoc fallback.
+- Visual QA catalog (`VisualQAHost` / `VisualQACatalog`) compiles only with `-DDISKPRUNE_VISUAL_QA` (`package-macos.sh`). Release builds omit it.
+- `.github/workflows/build-mac.yml` no longer publishes an ad-hoc DMG as a GitHub Release. Tag releases are draft + prerelease until checks 10–12.
+- Gate 5 is **not PASS**. No notarized artifact exists in this environment (no Apple credentials, not macOS).
+
 ### Website (Lane 2 — honest marketing)
 
 - Homepage hero is “See why your Mac is full. Move only what you approve to Trash.” Scan free, $19 lifetime. Open Anyway sits below the fold until notarization.

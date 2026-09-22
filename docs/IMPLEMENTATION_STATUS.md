@@ -72,4 +72,14 @@ Reviewed artifact: [visual-qa-2241cbe5](https://github.com/ssbharathqcca-pixel/d
 
 ## Gate 5 — Signed universal release
 
-- [ ] BLOCKED on Apple Developer secrets and a Mac
+- [x] `scripts/build-universal.sh` — arm64 + x86_64, `lipo`, identical SPM bundles, no Visual QA catalog
+- [x] `app/Packaging/DiskPrune.entitlements` — hardened runtime, no sandbox, no `get-task-allow`
+- [x] `scripts/release-macos.sh` — Developer ID, nested sign (no `--deep`), notarytool, staple, SHA-256
+- [x] `scripts/verify-release.sh` — PART 19.4 checks 1–9 against the mounted DMG; 10–12 marked MANUAL
+- [x] `.github/workflows/build-mac.yml` rewritten: tag job fails if Apple secrets are absent; GitHub Release is draft+prerelease; ad-hoc QA DMG is not a Release
+- [ ] Apple Developer secrets in GitHub Actions (`DEVELOPER_ID_CERT_P12`, `DEVELOPER_ID_CERT_PASSWORD`, `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`)
+- [ ] Checks 1–9 on a notarized DMG produced by that job
+- [ ] Checks 10–12 on a clean Mac and an Intel Mac
+
+**Gate 5: NOT PASS.** Pipeline exists. No notarized artifact has been produced or inspected — this environment has no Apple credentials and is not macOS.
+

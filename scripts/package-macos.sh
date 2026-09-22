@@ -12,7 +12,9 @@ VERSION="${DISKPRUNE_VERSION:-1.0.0}"
 BUILD="${DISKPRUNE_BUILD:-$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo qa)}"
 
 cd "$APP_DIR"
-swift build -c release --product DiskPrune
+# Visual QA catalog is compiled only when this define is set. Release builds
+# (scripts/build-universal.sh / release-macos.sh) must not pass it.
+swift build -c release --product DiskPrune -Xswiftc -DDISKPRUNE_VISUAL_QA
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

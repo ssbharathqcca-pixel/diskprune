@@ -24,4 +24,5 @@ worker/.dev.vars
 visual-qa-shots/
 app/DiskPrune.app/
 app/DiskPrune.dmg
+dist/release/
 

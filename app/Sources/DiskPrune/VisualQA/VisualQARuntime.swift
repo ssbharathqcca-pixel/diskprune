@@ -4,7 +4,9 @@ import Darwin
 import Foundation
 import SwiftUI
 
-/// In-process Visual QA harness. Dead unless `DISKPRUNE_VISUAL_QA=1`.
+/// In-process Visual QA harness.
+/// Catalog/host are compiled only with `-DDISKPRUNE_VISUAL_QA` (package-macos.sh).
+/// Release builds omit that define. Runtime still requires `DISKPRUNE_VISUAL_QA=1`.
 /// Does not execute CleanupExecutor, bypass TOCTOU, or open LicenseManager.
 enum VisualQARuntime {
     static var isEnabled: Bool {
@@ -48,7 +50,10 @@ enum VisualQARuntime {
         }
         fputs(line, stderr)
     }
+}
 
+#if DISKPRUNE_VISUAL_QA
+extension VisualQARuntime {
     @MainActor
     static func root(knowledge: StorageKnowledge) -> some View {
         VisualQAHost(session: AppSession(knowledge: knowledge))
@@ -1047,3 +1052,4 @@ private enum VisualQACatalog {
         }
     }
 }
+#endif

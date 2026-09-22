@@ -19,9 +19,9 @@ Honest list. Do not hide these in marketing.
 - Legacy `ScannerActor.trash(urls:)`, `ContentView`, and `SafetyRules` removed after the new UI was CI-green (Rule 18).
 - B-11 is fixed: cleanup entitlement requires a verified DPL token. A Keychain item is not a license.
 - Worker B-12 is fixed in source: Stripe `constructEventAsync`, D1 idempotent fulfillments, encrypted keys, no `GET /key-lookup`. Production D1/KV ids and Wrangler secrets are owner-held (`scripts/provision-worker.sh --apply`). This sandbox cannot authenticate to Cloudflare.
-- `PublicKeys.k1Base64` currently matches `wrangler.toml [vars] LICENSE_SIGNING_PUB_K1`, but both are a placeholder whose private key is **not** deployed. The owner provisioner generates the production pair. The private key is a Wrangler secret and is not in this repository.
+- `PublicKeys.k1Base64` equals `wrangler.toml` `[vars] LICENSE_SIGNING_PUB_K1` (`bwDWn1ibch4eF1MY64LX4pgFIxaGhrOM9dPtS5LtTEU=`, commit `9d1259fe`). The matching PKCS#8 private key is Wrangler secret `LICENSE_SIGNING_KEY_K1` and is not in this repository. Release verification re-checks that match.
 - B-13 is fixed on the success pages: they call `GET /v1/checkout/:id/status` and never generate or display a key. `site/` as a whole remains the Grok scaffold and is deleted only in commit 7.7 after the Astro port (7.1–7.6) is verified.
-- Universal / Developer ID / notarized release (handoff Phase 6.1/6.2, Gate 5) is not started. The packaging pipeline is still ad-hoc signed, arm64-only.
+- Universal / Developer ID / notarized release (handoff Phase 6.1/6.2, Gate 5) now has fail-closed scripts and CI (`docs/RELEASE.md`). The packaging pipeline for Visual QA is still ad-hoc. Gate 5 is **not PASS** until a notarized DMG is inspected and checks 10–12 pass. This environment cannot codesign or notarize.
 - This Linux builder cannot compile Swift, sign, or notarize.
 
 ## Environment

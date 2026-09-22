@@ -35,7 +35,7 @@ Use them to walk this checklist when you do not have a Mac. `manifest.json` alwa
 3. Download the artifact named `DiskPrune-<sha>`.
 4. Unzip it. You get `DiskPrune.dmg`.
 
-The DMG is **ad-hoc signed, arm64 or runner-arch, not notarized.** That is expected until Phase 6.
+The DMG is **ad-hoc signed, runner-arch, not notarized.** That is expected for Visual QA. Gate 5 (`docs/RELEASE.md`) is a different pipeline and must not use this script.
 
 ### Open on a Mac (Gatekeeper)
 
@@ -143,4 +143,4 @@ Do not convert “looks probably fine from CI” into PASS.
 - Dry run + receipt, if the reviewer declines to move any file
 - Reduce Motion / Reduce Transparency / VoiceOver / Dynamic Type `.accessibility3`
 - Gatekeeper path on a Mac that is not the Actions runner
-- Universal / Developer ID / notarized build (Phase 6)
+- Universal / Developer ID / notarized build (Gate 5, `docs/RELEASE.md`)
