@@ -1,5 +1,0 @@
-name = "diskprune-web"
-pages_build_output_dir = "dist"
-
-[[pages_build_env_config]]
-production_branch = "main"
