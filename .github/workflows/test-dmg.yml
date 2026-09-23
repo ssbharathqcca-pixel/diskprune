@@ -36,7 +36,7 @@ on:
 env:
   # ---- FILL THESE IN ----
   APP_NAME: "DiskPrune"        # e.g. DiskCleaner  (the .app bundle name, without .app)
-  DMG_ARTIFACT: "DiskPrune-dmg"   # artifact name from your build workflow (the one holding the .dmg)
+  DMG_ARTIFACT: "test-notarized-dmg.yml"   # artifact name from your build workflow (the one holding the .dmg)
   BUILD_WORKFLOW: "build-mac.yml"    # file name of the workflow that builds/notarizes the .dmg
   # ------------------------
 
