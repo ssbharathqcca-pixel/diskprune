@@ -1,0 +1,154 @@
+# Smoke-test a notarized + stapled macOS .dmg on a GitHub macOS runner.
+#
+# WHAT IT DOES (free, ~5 minutes, no Mac needed):
+#   1. Downloads the .dmg artifact from your build workflow
+#      (latest successful run, or a specific run you pick)
+#   2. Mounts the .dmg
+#   3. Verifies the code signature (codesign --verify --deep --strict)
+#   4. Verifies Gatekeeper accepts it (spctl)
+#   5. Verifies the notarization ticket is stapled (stapler validate)
+#   6. Installs the .app and launches it for 20 seconds to prove it
+#      doesn't crash on launch, then takes a screenshot for you
+#
+# WHAT IT DOES *NOT* DO:
+#   It can't click through your UI. This catches signing/notarization/
+#   crash-on-launch problems. Real GUI testing still needs a Mac
+#   (cloud Mac for $1/hr, or a friend's Mac — see notes at the bottom).
+#
+# SETUP:
+#   1. Fill in the three values under `env:` below.
+#   2. Save this file as .github/workflows/test-dmg.yml in your repo.
+#   3. Go to Actions > "Test notarized .dmg" > Run workflow.
+#      Optionally paste a specific run ID to test an older build.
+
+name: Test notarized .dmg
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: >-
+          Run ID of the build that produced the .dmg
+          (leave empty to test the latest successful build)
+        required: false
+        default: ""
+
+env:
+  # ---- FILL THESE IN ----
+  APP_NAME: "DiskPrune"        # e.g. DiskCleaner  (the .app bundle name, without .app)
+  DMG_ARTIFACT: "DiskPrune-dmg"   # artifact name from your build workflow (the one holding the .dmg)
+  BUILD_WORKFLOW: "build-mac.yml"    # file name of the workflow that builds/notarizes the .dmg
+  # ------------------------
+
+jobs:
+  smoke-test:
+    runs-on: macos-15
+    timeout-minutes: 15
+
+    steps:
+      - name: Download the .dmg artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "${{ inputs.run_id }}" ]; then
+            RUN_ID=$(gh run list \
+              --workflow="${{ env.BUILD_WORKFLOW }}" \
+              --status=success --limit 1 \
+              --json databaseId -q '.[0].databaseId')
+            echo "Using latest successful build run: $RUN_ID"
+          else
+            RUN_ID="${{ inputs.run_id }}"
+            echo "Using specified build run: $RUN_ID"
+          fi
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "❌ No successful build run found for ${{ env.BUILD_WORKFLOW }}"
+            exit 1
+          fi
+          echo "RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          gh run download "$RUN_ID" -n "${{ env.DMG_ARTIFACT }}" -D ./artifacts
+          ls -la ./artifacts
+
+      - name: Mount the .dmg
+        run: |
+          DMG=$(ls ./artifacts/*.dmg | head -1)
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
+          echo "Mounting: $DMG"
+          hdiutil attach "$DMG" -nobrowse -mountpoint /Volumes/TestApp
+          ls -la /Volumes/TestApp
+
+      - name: Verify code signature
+        run: |
+          codesign --verify --deep --strict --verbose=2 \
+            "/Volumes/TestApp/${{ env.APP_NAME }}.app"
+
+      - name: Verify Gatekeeper acceptance
+        run: |
+          spctl -a -t exec -vv "/Volumes/TestApp/${{ env.APP_NAME }}.app"
+
+      - name: Verify notarization staple
+        run: |
+          xcrun stapler validate "/Volumes/TestApp/${{ env.APP_NAME }}.app"
+
+      - name: Install the app
+        run: |
+          cp -R "/Volumes/TestApp/${{ env.APP_NAME }}.app" /Applications/
+          hdiutil detach /Volumes/TestApp
+          ls -la "/Applications/${{ env.APP_NAME }}.app"
+
+      - name: Launch smoke test (20 seconds)
+        run: |
+          open -a "${{ env.APP_NAME }}"
+          sleep 20
+          if pgrep -x "${{ env.APP_NAME }}" > /dev/null; then
+            echo "✅ ${{ env.APP_NAME }} is running — no crash on launch"
+          else
+            echo "❌ ${{ env.APP_NAME }} is not running after 20s — it crashed or exited"
+            echo "--- recent log entries for the app ---"
+            log show --last 3m --predicate 'process == "${{ env.APP_NAME }}"' \
+              --style compact 2>/dev/null | tail -50 || true
+            exit 1
+          fi
+          # Screenshot so you can eyeball the UI (menu bar apps: check the menu bar area)
+          screencapture -x "$HOME/smoke-test.png" || true
+          # Quit the app cleanly
+          osascript -e 'quit app "${{ env.APP_NAME }}"' || true
+          sleep 3
+          pkill -x "${{ env.APP_NAME }}" || true
+          echo "Smoke test complete."
+
+      # OPTIONAL: if your app supports a CLI self-test flag (e.g. --self-test),
+      # uncomment and adapt this step. It runs before the GUI launch test.
+      # - name: CLI self-test (optional)
+      #   run: |
+      #     "/Applications/${{ env.APP_NAME }}.app/Contents/MacOS/${{ env.APP_NAME }}" --self-test
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-screenshot
+          path: ~/smoke-test.png
+          if-no-files-found: warn
+
+# ---------------------------------------------------------------------------
+# REAL GUI TESTING (clicking through the app) — pick one:
+#
+# 1. Cloud Mac, ~$1/hour (cheapest real option):
+#    MacinCloud pay-as-you-go — $1/hour or $4/day, Mac mini M1/M2/M4,
+#    upload your .dmg through their file manager, install, click through.
+#    https://www.macincloud.com/pages/payg.html
+#    (Dedicated M4 with full admin from $3.30/day also exists via rentamac.io.)
+#
+# 2. Borrow a Mac for an evening (free):
+#    Copy the .dmg over, double-click, drag to Applications, run it.
+#    Gatekeeper should open it with no warnings since it's notarized+stapled.
+#    This is the single most valuable test — a real human on real hardware.
+#
+# 3. AWS EC2 Mac instances: real Macs in the cloud, but there's a 24-hour
+#    minimum per Apple licensing — overkill for a quick test.
+#
+# NOTE for disk-utility apps: features needing Full Disk Access or admin
+# rights will prompt on first run — that's normal and expected. The CI test
+# above only proves the app launches cleanly; permission flows need the
+# GUI test on a real (or cloud) Mac.
+# ---------------------------------------------------------------------------
