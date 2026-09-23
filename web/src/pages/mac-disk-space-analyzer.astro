@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { BUY_URL, PRICE, COMPARISON } from "../lib/product.mjs";
+import { BUY_URL, PRICE, FOUNDING_PRICE, COMPARISON } from "../lib/product.mjs";
 ---
 
 <Layout
@@ -25,7 +25,7 @@ import { BUY_URL, PRICE, COMPARISON } from "../lib/product.mjs";
         <li><strong class="text-ink">DiskBuddy</strong> — eight visualizations, lifetime license, launch pricing. Unsigned as of September 2026. Packaging is the product.</li>
         <li><strong class="text-ink">DissectMac</strong> — free notarized treemap. No DiskPrune-style cleanup path.</li>
         <li><strong class="text-ink">CleanMyMac</strong> — subscription suite. Aggressive cleanup marketing. See <a href="/vs-cleanmymac">DiskPrune vs CleanMyMac</a>.</li>
-        <li><strong class="text-ink">DiskPrune</strong> — storage autopsy, named developer locations, plan → dry run → Trash only. {PRICE} lifetime. Notarized build not published yet.</li>
+        <li><strong class="text-ink">DiskPrune</strong> — storage autopsy, named developer locations, plan → dry run → Trash only. {PRICE} lifetime ({FOUNDING_PRICE} founding). Notarized.</li>
       </ul>
     </section>
 
@@ -79,8 +79,8 @@ import { BUY_URL, PRICE, COMPARISON } from "../lib/product.mjs";
     </section>
 
     <div class="mt-12 flex flex-wrap gap-3">
-      <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune — {PRICE}</a>
-      <a class="btn btn-secondary" href="/download">Download status</a>
+      <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune — {FOUNDING_PRICE} <span class="opacity-60 line-through ml-1">{PRICE}</span></a>
+      <a class="btn btn-secondary" href="/download">Download</a>
     </div>
   </main>
 </Layout>

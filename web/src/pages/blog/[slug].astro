@@ -1,7 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { GUIDE_PAGES } from "../../lib/guides.mjs";
-import { BUY_URL, PRICE, GUIDES } from "../../lib/product.mjs";
+import { BUY_URL, PRICE, FOUNDING_PRICE, FOUNDING_CODE, GUIDES } from "../../lib/product.mjs";
 
 export function getStaticPaths() {
   return Object.entries(GUIDE_PAGES).map(([slug, page]) => ({
@@ -30,13 +30,13 @@ const others = GUIDES.filter((g) => !Astro.url.pathname.replace(/\/$/, "").endsW
     ))}
 
     <section class="mt-12 border border-hairline bg-panel p-6" style="border-radius: var(--radius-md);">
-      <p class="font-semibold text-ink">Scan is free. Cleanup is {PRICE} lifetime.</p>
+      <p class="font-semibold text-ink">Scan is free. Cleanup is {FOUNDING_PRICE} lifetime with code <span class="coupon">{FOUNDING_CODE}</span> — {PRICE} after the first 100.</p>
       <p class="mt-2 text-sm text-muted">
         DiskPrune moves only what you approve to Trash. It does not empty Trash,
         delete snapshots, or delete Docker.raw.
       </p>
       <div class="mt-4 flex flex-wrap gap-3">
-        <a class="btn btn-primary" href={BUY_URL}>Buy {PRICE}</a>
+        <a class="btn btn-primary" href={BUY_URL}>Buy {FOUNDING_PRICE} <span class="opacity-60 line-through ml-1">{PRICE}</span></a>
         <a class="btn btn-secondary" href="/download">Download</a>
       </div>
     </section>

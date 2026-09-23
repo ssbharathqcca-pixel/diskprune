@@ -3,13 +3,16 @@
 export const PRICE = "$19";
 export const PRICE_NUMBER = "19.00";
 export const FOUNDING_PRICE = "$12";
-export const FOUNDING_PRICE_NUMBER = "12.00";
 export const FOUNDING_SEATS = 100;
+export const FOUNDING_CODE = "FOUNDING";
 export const SEATS = 3;
-export const BUY_URL =
-  "https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200";
-export const DOWNLOAD_URL =
-  "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest";
+const PAYMENT_LINK = "https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200";
+// Stripe pre-applies the code; once it is used up, checkout still works at list price.
+export const BUY_URL = `${PAYMENT_LINK}?prefilled_promo_code=${FOUNDING_CODE}`;
+const LATEST_RELEASE =
+  "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest/download";
+export const DOWNLOAD_URL = `${LATEST_RELEASE}/DiskPrune.dmg`;
+export const CHECKSUM_URL = `${LATEST_RELEASE}/DiskPrune.dmg.sha256`;
 export const SUPPORT_EMAIL = "support@diskprune.com";
 export const LICENSES_EMAIL = "licenses@diskprune.com";
 export const SITE_ORIGIN = "https://diskprune.com";
@@ -18,7 +21,7 @@ export const TAGLINE =
   "See why your Mac is full. Move only what you approve to Trash.";
 
 export const DESCRIPTION =
-  "Native macOS storage intelligence. Scan is free. Cleanup is a $19 lifetime license. Trash only — DiskPrune never empties Trash, never deletes APFS snapshots, and never touches Docker.raw.";
+  "Native macOS storage intelligence. Scan is free. Cleanup is a $19 lifetime license — $12 for the first 100 customers with code FOUNDING. Trash only — DiskPrune never empties Trash, never deletes APFS snapshots, and never touches Docker.raw.";
 
 export const PROMISES = [
   "Scan, autopsy, and explanations are free.",
@@ -76,7 +79,7 @@ export const COMPARISON = {
   rows: [
     {
       feature: "Price",
-      diskprune: "$19 lifetime",
+      diskprune: "$19 lifetime — $12 founding with code FOUNDING",
       daisydisk: "~$9.99 lifetime, 5 Macs",
       diskbuddy: "$9 launch / $49 list, lifetime",
       dissectmac: "Free",

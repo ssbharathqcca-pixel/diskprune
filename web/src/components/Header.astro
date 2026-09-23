@@ -1,5 +1,5 @@
 ---
-import { BUY_URL, PRICE } from "../lib/product.mjs";
+import { BUY_URL, PRICE, FOUNDING_PRICE, FOUNDING_SEATS, FOUNDING_CODE } from "../lib/product.mjs";
 
 const path = Astro.url.pathname;
 function active(href) {
@@ -8,18 +8,26 @@ function active(href) {
 }
 ---
 
+<div class="founding-strip">
+  <p class="mx-auto max-w-site px-6 py-2.5 text-sm leading-relaxed">
+    <strong>Founding price {FOUNDING_PRICE}</strong> (then {PRICE}) for the first {FOUNDING_SEATS} customers ·
+    code <span class="coupon">{FOUNDING_CODE}</span> applied at checkout ·
+    <a class="strip-link" href={BUY_URL}>Get it for {FOUNDING_PRICE} →</a>
+  </p>
+</div>
+
 <header class="sticky top-0 z-40 border-b border-hairline bg-paper/90 backdrop-blur-md">
   <div class="mx-auto flex max-w-site flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
     <a href="/" class="wordmark text-lg font-semibold tracking-tight text-ink">
       DiskPrune
     </a>
-    <nav class="flex flex-1 flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+    <nav class="order-last flex w-full flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted sm:order-none sm:w-auto sm:flex-1">
       <a class:list={["nav-link hover:text-ink", active("/download") && "text-ink"]} href="/download">Download</a>
       <a class:list={["nav-link hover:text-ink", active("/pricing") && "text-ink"]} href="/pricing">Pricing</a>
       <a class:list={["nav-link hover:text-ink", active("/mac-disk-space-analyzer") && "text-ink"]} href="/mac-disk-space-analyzer">Compare</a>
       <a class="nav-link hover:text-ink" href="/#guides">Guides</a>
       <a class:list={["nav-link hover:text-ink", active("/support") && "text-ink"]} href="/support">Support</a>
     </nav>
-    <a class="btn btn-primary text-sm" href={BUY_URL}>Buy {PRICE}</a>
+    <a class="btn btn-primary ml-auto text-sm" href={BUY_URL}>Buy {FOUNDING_PRICE}</a>
   </div>
 </header>

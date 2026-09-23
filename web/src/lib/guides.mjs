@@ -54,7 +54,7 @@ export const GUIDE_PAGES = {
       {
         h2: "What DiskPrune will not do here",
         p: [
-          "It will not skip the dry run. It will not permanently delete. It will not treat an .app bundle inside Developer tools as a candidate. Scan is free; moving DerivedData to Trash requires the $19 lifetime license.",
+          "It will not skip the dry run. It will not permanently delete. It will not treat an .app bundle inside Developer tools as a candidate. Scan is free; moving DerivedData to Trash requires the lifetime license.",
         ],
       },
     ],

@@ -5,6 +5,7 @@ import {
   PRICE,
   FOUNDING_PRICE,
   FOUNDING_SEATS,
+  FOUNDING_CODE,
   TAGLINE,
   DESCRIPTION,
   GUIDES,
@@ -16,13 +17,6 @@ import {
 
 <Layout title="DiskPrune — native macOS storage intelligence" description={DESCRIPTION}>
   <main>
-    <div class="border-b border-hairline bg-[#f0f9eb] dark:bg-[#1a2e14]">
-      <p class="mx-auto max-w-site px-6 py-3 text-sm font-medium text-[#2d6a1b] dark:text-[#7ec96b]">
-        Founding price: {FOUNDING_PRICE} for the first {FOUNDING_SEATS} customers — goes to {PRICE} after.
-        <a class="underline underline-offset-2 hover:no-underline" href={BUY_URL}>Lock in {FOUNDING_PRICE} →</a>
-      </p>
-    </div>
-
     <section class="mx-auto max-w-site px-6 pt-16 pb-10 sm:pt-24">
       <p class="text-sm font-medium uppercase tracking-[0.14em] text-muted">
         Native SwiftUI · macOS 14+ · Notarized
@@ -38,7 +32,11 @@ import {
         <a class="btn btn-primary" href={BUY_URL}>Buy lifetime — {FOUNDING_PRICE} <span class="opacity-60 line-through ml-1">{PRICE}</span></a>
         <a class="btn btn-secondary" href={DOWNLOAD_URL}>Download free</a>
       </div>
-      <p class="mt-4 text-sm text-subtle">
+      <p class="mt-5 text-sm text-ink">
+        Founding code <span class="coupon">{FOUNDING_CODE}</span> is applied automatically.
+        If checkout shows {PRICE}, click <strong>Add promotion code</strong> and type {FOUNDING_CODE}.
+      </p>
+      <p class="mt-2 text-sm text-subtle">
         Up to 3 Macs · 14-day refund · opens instantly, no security warnings · license key by email.
       </p>
     </section>
@@ -207,7 +205,9 @@ import {
           <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune — {FOUNDING_PRICE} <span class="opacity-60 line-through ml-1">{PRICE}</span></a>
           <a class="btn btn-secondary" href={DOWNLOAD_URL}>Download free</a>
         </div>
-        <p class="mt-4 text-sm text-subtle">Founding price rises to {PRICE} after the first {FOUNDING_SEATS} customers.</p>
+        <p class="mt-4 text-sm text-subtle">
+          Code <span class="coupon">{FOUNDING_CODE}</span> · price rises to {PRICE} after the first {FOUNDING_SEATS} customers.
+        </p>
       </div>
     </section>
   </main>

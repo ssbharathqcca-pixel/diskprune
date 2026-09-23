@@ -1,6 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { BUY_URL, PRICE, LICENSES_EMAIL, DOWNLOAD_URL } from "../lib/product.mjs";
+import {
+  BUY_URL,
+  PRICE,
+  FOUNDING_PRICE,
+  FOUNDING_CODE,
+  LICENSES_EMAIL,
+  DOWNLOAD_URL,
+  CHECKSUM_URL,
+} from "../lib/product.mjs";
 ---
 
 <Layout
@@ -16,9 +24,12 @@ import { BUY_URL, PRICE, LICENSES_EMAIL, DOWNLOAD_URL } from "../lib/product.mjs
 
     <div class="mt-8 flex flex-wrap gap-3">
       <a class="btn btn-primary" href={DOWNLOAD_URL}>Download DiskPrune.dmg</a>
-      <a class="btn btn-secondary" href={BUY_URL}>Buy lifetime — {PRICE}</a>
+      <a class="btn btn-secondary" href={BUY_URL}>Buy lifetime — {FOUNDING_PRICE} <span class="opacity-60 line-through ml-1">{PRICE}</span></a>
     </div>
-    <p class="mt-3 text-sm text-subtle">macOS 14 Sonoma or later · Universal (Apple Silicon + Intel)</p>
+    <p class="mt-3 text-sm text-subtle">
+      macOS 14 Sonoma or later · Universal (Apple Silicon + Intel) ·
+      <a href={CHECKSUM_URL}>SHA-256 checksum</a>
+    </p>
 
     <h2 class="mt-12 text-2xl font-semibold tracking-tight">Installing DiskPrune</h2>
     <ol class="mt-4 list-decimal space-y-3 pl-5 text-muted">
@@ -37,6 +48,13 @@ import { BUY_URL, PRICE, LICENSES_EMAIL, DOWNLOAD_URL } from "../lib/product.mjs
       DiskPrune scans without Full Disk Access, but some protected folders
       (Mail, Messages, Time Machine) only show byte counts — not filenames — unless
       you grant it. Grant it in System Settings → Privacy &amp; Security → Full Disk Access.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">Cleanup license</h2>
+    <p class="mt-3 text-muted leading-relaxed">
+      Scanning is always free. Moving items to Trash needs the lifetime license:
+      {FOUNDING_PRICE} with code <span class="coupon text-ink">{FOUNDING_CODE}</span> (applied
+      automatically from our Buy buttons), {PRICE} after the first 100 customers.
     </p>
 
     <h2 class="mt-12 text-2xl font-semibold tracking-tight">Already bought?</h2>

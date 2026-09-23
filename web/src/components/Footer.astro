@@ -1,5 +1,12 @@
 ---
-import { GUIDES, COMPARE_PAGES, SUPPORT_EMAIL } from "../lib/product.mjs";
+import {
+  GUIDES,
+  COMPARE_PAGES,
+  SUPPORT_EMAIL,
+  PRICE,
+  FOUNDING_PRICE,
+  FOUNDING_CODE,
+} from "../lib/product.mjs";
 ---
 
 <footer class="mt-auto border-t border-hairline py-12 px-6 text-sm text-muted">
@@ -7,8 +14,8 @@ import { GUIDES, COMPARE_PAGES, SUPPORT_EMAIL } from "../lib/product.mjs";
     <div>
       <p class="font-semibold text-ink">DiskPrune</p>
       <p class="mt-2 max-w-xs leading-relaxed">
-        Native macOS storage intelligence. Scan free. Cleanup is a $19 lifetime
-        license. Trash only.
+        Native macOS storage intelligence. Scan free. Cleanup is a {PRICE} lifetime
+        license — {FOUNDING_PRICE} with code {FOUNDING_CODE} for the first 100. Trash only.
       </p>
     </div>
     <div>

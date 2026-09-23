@@ -44,11 +44,11 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  a:not(.btn):not(.nav-link):not(.wordmark) {
+  a:not(.btn):not(.nav-link):not(.wordmark):not(.strip-link) {
     color: var(--accent);
   }
 
-  a:not(.btn):not(.nav-link):not(.wordmark):hover {
+  a:not(.btn):not(.nav-link):not(.wordmark):not(.strip-link):hover {
     text-decoration: underline;
   }
 }
@@ -108,5 +108,29 @@
   }
   .prose-page p + p {
     margin-top: 1rem;
+  }
+  .founding-strip {
+    background: #eaf5e3;
+    border-bottom: 1px solid #cfe6c2;
+    color: #1f4d14;
+  }
+  .strip-link {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .strip-link:hover {
+    text-decoration: none;
+  }
+  .coupon {
+    display: inline-block;
+    padding: 0 0.45rem;
+    border: 1.5px dashed currentColor;
+    border-radius: var(--radius-sm);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    user-select: all;
   }
 }
