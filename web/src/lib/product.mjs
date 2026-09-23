@@ -2,9 +2,14 @@
 
 export const PRICE = "$19";
 export const PRICE_NUMBER = "19.00";
+export const FOUNDING_PRICE = "$12";
+export const FOUNDING_PRICE_NUMBER = "12.00";
+export const FOUNDING_SEATS = 100;
 export const SEATS = 3;
 export const BUY_URL =
   "https://buy.stripe.com/eVqeVc8nd9wx39efNdaR200";
+export const DOWNLOAD_URL =
+  "https://github.com/ssbharathqcca-pixel/diskprune/releases/latest";
 export const SUPPORT_EMAIL = "support@diskprune.com";
 export const LICENSES_EMAIL = "licenses@diskprune.com";
 export const SITE_ORIGIN = "https://diskprune.com";
@@ -87,7 +92,7 @@ export const COMPARISON = {
     },
     {
       feature: "Notarized",
-      diskprune: "Not yet — Open Anyway until Gate 5",
+      diskprune: "Yes — Developer ID, notarized + stapled",
       daisydisk: "Yes",
       diskbuddy: "No (unsigned as of Sep 2026)",
       dissectmac: "Yes",

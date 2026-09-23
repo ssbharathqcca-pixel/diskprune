@@ -1,41 +1,53 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { BUY_URL, PRICE, LICENSES_EMAIL } from "../lib/product.mjs";
+import { BUY_URL, PRICE, LICENSES_EMAIL, DOWNLOAD_URL } from "../lib/product.mjs";
 ---
 
 <Layout
-  title="Download DiskPrune"
-  description="A notarized DiskPrune.dmg is not published yet. The old GitHub v1.0.0 stub is unpublished. Scan is free; moving items to Trash needs the $19 lifetime license."
+  title="Download DiskPrune — notarized for macOS"
+  description="Download DiskPrune. Notarized and Developer ID signed for macOS 14+. Double-click to open — no security warnings."
 >
   <main class="mx-auto max-w-prose px-6 py-16">
-    <h1 class="text-4xl font-semibold tracking-tight">Download</h1>
+    <h1 class="text-4xl font-semibold tracking-tight">Download DiskPrune</h1>
     <p class="mt-4 text-lg text-muted leading-relaxed">
-      A notarized DiskPrune.dmg is not published yet. The previous GitHub v1.0.0
-      file was an old stub and has been unpublished — do not hunt for it.
-    </p>
-    <p class="mt-4 text-muted leading-relaxed">
-      If you already bought DiskPrune, your license key is in the email from
-      {LICENSES_EMAIL}. Keep that email. Paste the key in DiskPrune → Settings →
-      Licence once you have the current app.
-    </p>
-    <p class="mt-4 text-muted leading-relaxed">
-      We will post the signed macOS build here and in that same email thread as
-      soon as it is notarized. Until then, scan is free in the current app;
-      moving items to Trash requires the lifetime license.
+      Notarized, Developer ID signed, and stapled. macOS opens it with a
+      double-click — no Gatekeeper warning, no "Open Anyway" step.
     </p>
 
-    <h2 class="mt-12 text-2xl font-semibold tracking-tight">Opening an unsigned build</h2>
-    <p class="mt-3 text-muted leading-relaxed">
-      Until Developer ID notarization, Gatekeeper will warn. That is expected.
-    </p>
-    <ol class="mt-4 list-decimal space-y-2 pl-5 text-muted">
-      <li>Drag DiskPrune.app to /Applications.</li>
-      <li>If prompted, open System Settings → Privacy & Security.</li>
-      <li>Scroll to Security and click <strong class="text-ink">Open Anyway</strong>.</li>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a class="btn btn-primary" href={DOWNLOAD_URL}>Download DiskPrune.dmg</a>
+      <a class="btn btn-secondary" href={BUY_URL}>Buy lifetime — {PRICE}</a>
+    </div>
+    <p class="mt-3 text-sm text-subtle">macOS 14 Sonoma or later · Universal (Apple Silicon + Intel)</p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">Installing DiskPrune</h2>
+    <ol class="mt-4 list-decimal space-y-3 pl-5 text-muted">
+      <li>Open <strong class="text-ink">DiskPrune.dmg</strong> — a window appears with the app icon.</li>
+      <li>Drag <strong class="text-ink">DiskPrune.app</strong> into the <strong class="text-ink">Applications</strong> folder shortcut.</li>
+      <li>Eject the disk image (drag it to the Trash, or press <kbd class="font-mono text-sm">⌘E</kbd>).</li>
+      <li>Open Finder → Applications → double-click <strong class="text-ink">DiskPrune</strong>.</li>
+      <li>First launch: macOS asks if you're sure. Click <strong class="text-ink">Open</strong>.</li>
     </ol>
+    <p class="mt-4 text-sm text-subtle">
+      That's it. No right-click tricks, no System Settings detour. The app is notarized.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">Full Disk Access (optional)</h2>
+    <p class="mt-3 text-muted leading-relaxed">
+      DiskPrune scans without Full Disk Access, but some protected folders
+      (Mail, Messages, Time Machine) only show byte counts — not filenames — unless
+      you grant it. Grant it in System Settings → Privacy &amp; Security → Full Disk Access.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight">Already bought?</h2>
+    <p class="mt-3 text-muted leading-relaxed">
+      Your license key is in the email from <strong class="text-ink">{LICENSES_EMAIL}</strong>.
+      Paste it in DiskPrune → Settings → Licence. Cleanup requires a verified key;
+      scanning is always free.
+    </p>
 
     <div class="mt-10 flex flex-wrap gap-3">
-      <a class="btn btn-primary" href={BUY_URL}>Buy lifetime — {PRICE}</a>
+      <a class="btn btn-primary" href={DOWNLOAD_URL}>Download DiskPrune.dmg</a>
       <a class="btn btn-secondary" href="/support">Support</a>
     </div>
   </main>
