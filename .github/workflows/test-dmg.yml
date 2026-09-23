@@ -49,6 +49,7 @@ jobs:
       - name: Download the .dmg artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           if [ -z "${{ inputs.run_id }}" ]; then
             RUN_ID=$(gh run list \
