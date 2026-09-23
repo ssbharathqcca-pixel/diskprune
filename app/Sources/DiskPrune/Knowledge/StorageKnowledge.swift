@@ -25,15 +25,7 @@ final class StorageKnowledge: Sendable {
     }
 
     static func load() throws -> StorageKnowledge {
-        // Bundle.module uses a SPM-generated accessor that calls fatalError when the
-        // resource bundle can't be found — bypassing the ?? fallback below. In a
-        // notarized .app, build-universal.sh copies storage-rules.json directly to
-        // Contents/Resources, so Bundle.main finds it without the intermediate bundle.
-        // For development (swift run / Xcode), we manually search for the SPM bundle
-        // alongside the executable rather than calling Bundle.module and crashing.
-        let url = Bundle.main.url(forResource: "storage-rules", withExtension: "json")
-            ?? Self.storageRulesURLFromSPMBundle()
-        guard let url else { throw StorageKnowledgeError.missingResource }
+        guard let url = storageRulesURL() else { throw StorageKnowledgeError.missingResource }
         let data: Data
         do {
             data = try Data(contentsOf: url)
@@ -43,15 +35,21 @@ final class StorageKnowledge: Sendable {
         return try load(from: data)
     }
 
-    private static func storageRulesURLFromSPMBundle() -> URL? {
-        // Fallback for development: look for the SPM-generated resource bundle.
-        // The generated resource_bundle_accessor checks Bundle.main.bundleURL (root
-        // of .app, or executable dir in CLI mode) and a hard-coded build-time path —
-        // we replicate that search here without calling fatalError.
-        let candidates = [Bundle.main.resourceURL, Bundle.main.bundleURL].compactMap { $0 }
-        for base in candidates {
-            let bundlePath = base.appendingPathComponent("DiskPrune_DiskPrune.bundle")
-            if let bundle = Bundle(url: bundlePath),
+    // Never Bundle.module: SwiftPM's accessor calls fatalError when the resource
+    // bundle is not at the .app root, which crashed the notarized v1.2.0 on launch.
+    private static func storageRulesURL() -> URL? {
+        if let url = Bundle.main.url(forResource: "storage-rules", withExtension: "json") {
+            return url
+        }
+        var roots = [Bundle.main.resourceURL, Bundle.main.bundleURL].compactMap { $0 }
+        // Under `swift test` Bundle.main is the test runner; SwiftPM builds the
+        // .xctest bundle beside DiskPrune_DiskPrune.bundle.
+        let codeBundle = Bundle(for: StorageKnowledge.self)
+        if codeBundle != Bundle.main {
+            roots.append(codeBundle.bundleURL.deletingLastPathComponent())
+        }
+        for root in roots {
+            if let bundle = Bundle(url: root.appendingPathComponent("DiskPrune_DiskPrune.bundle")),
                let url = bundle.url(forResource: "storage-rules", withExtension: "json") {
                 return url
             }

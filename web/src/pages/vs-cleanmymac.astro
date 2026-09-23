@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { BUY_URL, PRICE } from "../lib/product.mjs";
+import { BUY_URL, PRICE, FOUNDING_PRICE, FOUNDING_CODE } from "../lib/product.mjs";
 ---
 
 <Layout
@@ -56,18 +56,16 @@ import { BUY_URL, PRICE } from "../lib/product.mjs";
       problem on your Mac.
     </p>
 
-    <h2 class="text-2xl font-semibold tracking-tight">Notarization, today</h2>
+    <h2 class="text-2xl font-semibold tracking-tight">Notarization</h2>
     <p class="mt-4 text-muted leading-relaxed">
-      CleanMyMac ships notarized. DiskPrune’s notarized DMG is not published
-      yet. Until it is, Gatekeeper needs Open Anyway. We would rather say that
-      on the site than pretend the current build is Developer ID signed.
-      <a href="/download">Download status</a> is the live sentence.
+      Both ship notarized. DiskPrune is a Developer ID signed, notarized, and
+      stapled DMG — it opens with a double-click. <a href="/download">Download it</a>.
     </p>
 
     <div class="mt-12 border border-hairline bg-panel p-6" style="border-radius: var(--radius-md);">
-      <p class="font-semibold text-ink">Scan free. {PRICE} lifetime. Trash only.</p>
+      <p class="font-semibold text-ink">Scan free. {FOUNDING_PRICE} founding lifetime with code <span class="coupon">{FOUNDING_CODE}</span>. Trash only.</p>
       <div class="mt-4 flex flex-wrap gap-3">
-        <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune — {PRICE}</a>
+        <a class="btn btn-primary" href={BUY_URL}>Buy DiskPrune — {FOUNDING_PRICE} <span class="opacity-60 line-through ml-1">{PRICE}</span></a>
         <a class="btn btn-secondary" href="/mac-disk-space-analyzer">Full comparison table</a>
       </div>
     </div>
