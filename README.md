@@ -71,7 +71,7 @@ checks 10–12 pass on real Macs.
 `web/` is the Astro site for diskprune.com. Scan free, $19 lifetime, honest
 comparison and guides. `site/` is a simulated demo and is not the product.
 
-A notarized DMG is not published yet — see `/download`.
+A notarized and stapled DMG is published  — see `/download`.
 
 ## License worker
 
